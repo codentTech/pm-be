@@ -1,0 +1,50 @@
+src/
+├── auth/                            # Authentication Module (Login, Signup, JWT, etc.)
+│   ├── dtos/                         # Data Transfer Objects (DTOs) for request validation
+│   ├── interfaces/                  # Interfaces for services and repository patterns
+│   ├── jobs/                        # Workers for background tasks (e.g., email verification)
+│   ├── auth.service.ts              # Service layer (Business logic for authentication)
+│   ├── auth.controller.ts           # Handles HTTP requests (API endpoints)
+│   ├── auth.module.ts               # NestJS module definition
+│
+├── user/                            # User Module (Profile, Roles, etc.)
+│   ├── dtos/                         # User-related DTOs (e.g., update profile)
+│   ├── interfaces/                  # User-related interfaces for strong typing
+│   ├── user.service.ts              # Business logic for user management
+│   ├── users.controller.ts           # API routes for user management
+│   ├── users.module.ts               # NestJS module for users
+│
+├── common/                          # Common utilities and cross-cutting concerns
+│   ├── filters/                     # Middleware
+│   ├── filters/                     # Global exception filters (e.g., HttpExceptionFilter)
+│   ├── interceptors/                # Logging, performance, and transformation interceptors
+│   ├── decorators/                  # Custom decorators (e.g., @CurrentUser)
+│   ├── guards/                      # Authentication & authorization guards (e.g., JWT, Roles)
+│   ├── pipes/                       # Validation and transformation pipes
+│   ├── utils/                       # Helper functions (e.g., hashing, formatting)
+│   ├── dtos/                         # Global DTOs
+│   ├── constants/                   # Global constants
+│   ├── factories/                   # Factory functions for dependency injection
+│   ├── repositories/                # Base repositories and repository factories
+│   ├── types/                       # Type definitions and interfaces used across modules and enums
+│
+├── core/                            # Core application setup and infrastructure
+│   ├── config/                      # Configuration files (e.g., dotenv, app settings)
+│   ├── database/                    # All database-related files
+│   │   ├── entities/                # Database entities (TypeORM models)
+│   │   │   ├── user.entity.ts       # User entity definition
+│   │   │   ├── auth.entity.ts       # Auth-related entity
+│   │   │   ├── order.entity.ts      # Order entity
+│   │   │   ├── index.ts             # Export all entities from here
+│   │   ├── migrations/              # Database migration files
+│   │   │   ├── 001-init.ts          # Initial database migration
+│   │   ├── seeders/                 # Database seeders for populating data
+│   │   │   ├── user.seeder.ts       # Seeder for initial user data
+│   │   │   ├── order.seeder.ts      # Seeder for order data
+│   │   ├── typeorm.config.ts        # TypeORM database configuration
+│   │   ├── index.ts                 # Centralized database exports
+│   ├── infrastructure/              # Other infrastructure services
+│   │   ├── event-bus/               # Event-driven communication (RabbitMQ, Kafka, GRPC)
+│   │   ├── http/                    # Global HTTP service (Axios, Fetch API clients)
+│
+├── main.ts                          # Main entry point of the application
