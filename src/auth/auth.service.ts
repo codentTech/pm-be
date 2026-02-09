@@ -7,23 +7,33 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import axios from "axios";
+import * as crypto from "crypto";
 import { AuthErrors } from "src/common/constants/auth.errors";
 import { UserRepository } from "src/common/repositories/user.repository";
 import { BcryptService } from "src/common/services/bcrypt.service";
+import { EmailService } from "src/common/services/email.service";
 import { UserEntity } from "src/core/database/entities/user.entity";
-import { LoginDto, RegisterDto } from "./dto/auth.dto";
+import { ForgetPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from "./dto/auth.dto";
 import { ILoginResponse, IOAuthUser } from "./interfaces/auth.interface";
 
 @Injectable()
 export class AuthService {
-  private auth0Domain;
+  private auth0Domain: string;
+  private frontendUrl: string;
+
   constructor(
     configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly userRepository: UserRepository,
-    private readonly bcryptService: BcryptService
+    private readonly bcryptService: BcryptService,
+    private readonly emailService: EmailService,
   ) {
-    this.auth0Domain = configService.get<string>("AUTH0_DOMAIN");
+    this.auth0Domain = configService.get<string>("AUTH0_DOMAIN") || "";
+    this.frontendUrl = configService.get<string>("FRONTEND_URL") || "http://localhost:3000";
+  }
+
+  private generateToken(): string {
+    return crypto.randomBytes(32).toString("hex");
   }
 
   /**
@@ -43,11 +53,80 @@ export class AuthService {
 
     // Hash password and save user
     const hashedPassword = await this.bcryptService.hashPassword(Password);
-    const newUser = await this.userRepository
-      .getORMMethods()
-      .save({ ...data, Password: hashedPassword });
+    const verificationToken = this.generateToken();
+    const verificationExpires = new Date();
+    verificationExpires.setHours(verificationExpires.getHours() + 24);
+
+    const newUser = await this.userRepository.getORMMethods().save({
+      ...data,
+      Password: hashedPassword,
+      EmailVerified: false,
+      VerificationToken: verificationToken,
+      VerificationTokenExpiresAt: verificationExpires,
+    } as Partial<UserEntity>);
+
+    const verifyUrl = `${this.frontendUrl}/auth/verify-email?token=${verificationToken}`;
+    await this.emailService.sendVerifyEmail({
+      to: Email,
+      fullName: data.FullName,
+      verifyUrl,
+    });
 
     return newUser;
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    const user = await this.userRepository.findOneRecord({
+      VerificationToken: token,
+    });
+    if (!user) throw new BadRequestException(AuthErrors.VERIFICATION_TOKEN_INVALID);
+    if (user.VerificationTokenExpiresAt && user.VerificationTokenExpiresAt < new Date()) {
+      throw new BadRequestException(AuthErrors.VERIFICATION_TOKEN_INVALID);
+    }
+
+    await this.userRepository.getORMMethods().update(user.Id, {
+      EmailVerified: true,
+      VerificationToken: null,
+      VerificationTokenExpiresAt: null,
+    });
+  }
+
+  async forgotPassword(data: ForgetPasswordDto): Promise<void> {
+    const user = await this.userRepository.findOneRecord({ Email: data.Email });
+    if (!user) return; // Don't reveal if user exists
+
+    const resetToken = this.generateToken();
+    const resetExpires = new Date();
+    resetExpires.setHours(resetExpires.getHours() + 1);
+
+    await this.userRepository.getORMMethods().update(user.Id, {
+      PasswordResetToken: resetToken,
+      PasswordResetTokenExpiresAt: resetExpires,
+    });
+
+    const resetUrl = `${this.frontendUrl}/auth/reset-password?token=${resetToken}`;
+    await this.emailService.sendForgotPassword({
+      to: user.Email,
+      fullName: user.FullName,
+      resetUrl,
+    });
+  }
+
+  async resetPassword(data: ResetPasswordDto): Promise<void> {
+    const user = await this.userRepository.findOneRecord({
+      PasswordResetToken: data.Token,
+    });
+    if (!user) throw new BadRequestException(AuthErrors.RESET_TOKEN_INVALID);
+    if (user.PasswordResetTokenExpiresAt && user.PasswordResetTokenExpiresAt < new Date()) {
+      throw new BadRequestException(AuthErrors.RESET_TOKEN_INVALID);
+    }
+
+    const hashedPassword = await this.bcryptService.hashPassword(data.NewPassword);
+    await this.userRepository.getORMMethods().update(user.Id, {
+      Password: hashedPassword,
+      PasswordResetToken: null,
+      PasswordResetTokenExpiresAt: null,
+    });
   }
 
   /**
@@ -74,6 +153,10 @@ export class AuthService {
     );
     if (!matched) throw new BadRequestException(AuthErrors.INVALID_CREDENTIALS);
 
+    if (user.EmailVerified === false) {
+      throw new BadRequestException(AuthErrors.EMAIL_NOT_VERIFIED);
+    }
+
     // Generate token
     const token = this.generateAccessToken(user);
 
@@ -99,6 +182,7 @@ export class AuthService {
       user = await this.userRepository.getORMMethods().save({
         Email: emails,
         FullName: displayName || "",
+        EmailVerified: true,
       } as UserEntity);
     }
 
@@ -132,6 +216,7 @@ export class AuthService {
       user = await this.userRepository.getORMMethods().save({
         Email: email,
         FullName: name || "",
+        EmailVerified: true,
       } as unknown as UserEntity);
     }
 

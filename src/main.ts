@@ -2,6 +2,8 @@ import { config } from 'dotenv';
 config(); // Load .env before any module that reads process.env
 
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -9,15 +11,17 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
 
   // Enable CORS
   app.enableCors({
     origin: '*', // Allow all origins in development
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization'
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Organization-Id'
   });
 
   // Apply the Exception Filter

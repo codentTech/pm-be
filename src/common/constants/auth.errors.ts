@@ -6,4 +6,7 @@ export const AuthErrors = {
   INVALID_AUTH0_TOKEN: "Invalid Auth0 authentication token.",
   INVALID_OAUTH_DATA: "Invalid OAuth user data received.",
   USER_ALREADY_EXISTS: "User already exists.",
+  EMAIL_NOT_VERIFIED: "Please verify your email before logging in.",
+  VERIFICATION_TOKEN_INVALID: "Invalid or expired verification token.",
+  RESET_TOKEN_INVALID: "Invalid or expired password reset token.",
 } as const;

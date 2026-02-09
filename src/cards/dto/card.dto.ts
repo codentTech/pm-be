@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateCardDto {
   @ApiProperty({ example: 'Task title', description: 'Card title' })
@@ -57,4 +66,16 @@ export class UpdateCardDto {
   @IsOptional()
   @IsDateString()
   DueDate?: string;
+
+  @ApiPropertyOptional({ description: 'Label IDs to assign to card' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  LabelIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Assignee user IDs' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  AssigneeIds?: string[];
 }

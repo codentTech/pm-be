@@ -20,6 +20,35 @@ export class KpiRepository extends BaseRepository<KpiEntity> {
     });
   }
 
+  async findAllByUserAndOrg(userId: string, orgId: string): Promise<KpiEntity[]> {
+    return this.repo.find({
+      where: { OrganizationId: orgId },
+      order: { CreatedAt: 'DESC' },
+    });
+  }
+
+  async findAllByUserAndOrgPaginated(
+    userId: string,
+    orgId: string,
+    skip: number,
+    take: number,
+    sort = 'CreatedAt',
+    order: 'ASC' | 'DESC' = 'DESC',
+  ): Promise<[KpiEntity[], number]> {
+    const orderOpt: Record<string, 'ASC' | 'DESC'> = {};
+    const validSort = ['CreatedAt', 'UpdatedAt', 'Name', 'DueDate', 'TargetValue', 'CurrentValue', 'Period'].includes(sort)
+      ? sort
+      : 'CreatedAt';
+    orderOpt[validSort] = (order ?? 'DESC').toString().toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const [items, total] = await this.repo.findAndCount({
+      where: { OrganizationId: orgId },
+      order: orderOpt,
+      skip,
+      take,
+    });
+    return [items, total];
+  }
+
   async findOneByIdAndUserId(
     id: string,
     userId: string,
@@ -27,6 +56,13 @@ export class KpiRepository extends BaseRepository<KpiEntity> {
     return this.repo.findOne({
       where: { Id: id, CreatedBy: { Id: userId } },
       relations: ['CreatedBy'],
+    });
+  }
+
+  async findOneById(id: string): Promise<KpiEntity | null> {
+    return this.repo.findOne({
+      where: { Id: id },
+      relations: ['CreatedBy', 'Organization'],
     });
   }
 

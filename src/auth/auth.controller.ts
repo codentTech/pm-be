@@ -15,7 +15,13 @@ import { ApiResponse } from 'src/common/dto/api-response.dto';
 import { AuthenticatedRequest } from 'src/common/types/request.interface';
 import { UserEntity } from 'src/core/database/entities/user.entity';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import {
+  ForgetPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+  VerifyEmailDto,
+} from './dto/auth.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -27,7 +33,37 @@ export class AuthController {
   @ApiOperation({ summary: 'Register your account' })
   async register(@Body() body: RegisterDto): Promise<ApiResponse<UserEntity>> {
     const response = await this.authService.register(body);
-    return new ApiResponse(true, HttpStatus.CREATED, 'User registered successfully', response);
+    return new ApiResponse(
+      true,
+      HttpStatus.CREATED,
+      'User registered successfully. Please check your email to verify your account.',
+      response,
+    );
+  }
+
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verify email with token from verification email' })
+  async verifyEmail(@Body() body: VerifyEmailDto) {
+    await this.authService.verifyEmail(body.Token);
+    return new ApiResponse(true, HttpStatus.OK, 'Email verified successfully');
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Request password reset email' })
+  async forgotPassword(@Body() body: ForgetPasswordDto) {
+    await this.authService.forgotPassword(body);
+    return new ApiResponse(
+      true,
+      HttpStatus.OK,
+      'If an account exists with that email, you will receive a password reset link.',
+    );
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password with token from email' })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    await this.authService.resetPassword(body);
+    return new ApiResponse(true, HttpStatus.OK, 'Password reset successfully');
   }
 
   @Post('login')

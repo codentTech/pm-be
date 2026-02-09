@@ -1,5 +1,10 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { AttachmentEntity } from './attachment.entity';
 import { BaseEntity } from './base.entity';
+import { CardAssigneeEntity } from './card-assignee.entity';
+import { CardLabelEntity } from './card-label.entity';
+import { ChecklistEntity } from './checklist.entity';
+import { CommentEntity } from './comment.entity';
 import { ListEntity } from './list.entity';
 
 @Entity({ name: 'Cards' })
@@ -23,4 +28,19 @@ export class CardEntity extends BaseEntity {
 
   @Column({ type: 'uuid', nullable: false })
   ListId: string;
+
+  @OneToMany(() => CardLabelEntity, (cl) => cl.Card)
+  CardLabels?: CardLabelEntity[];
+
+  @OneToMany(() => CardAssigneeEntity, (ca) => ca.Card)
+  CardAssignees?: CardAssigneeEntity[];
+
+  @OneToMany(() => AttachmentEntity, (a) => a.Card)
+  Attachments?: AttachmentEntity[];
+
+  @OneToMany(() => CommentEntity, (c) => c.Card)
+  Comments?: CommentEntity[];
+
+  @OneToMany(() => ChecklistEntity, (ch) => ch.Card)
+  Checklists?: ChecklistEntity[];
 }

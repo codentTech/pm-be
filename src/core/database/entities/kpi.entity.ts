@@ -1,16 +1,18 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { KpiPeriod } from 'src/common/types/kpi-period.enum';
 import { BaseEntity } from './base.entity';
-
-export enum KpiPeriod {
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  MONTHLY = 'monthly',
-  QUARTERLY = 'quarterly',
-  YEARLY = 'yearly',
-}
+import { OrganizationEntity } from './organization.entity';
 
 @Entity({ name: 'Kpis' })
 export class KpiEntity extends BaseEntity {
+  @Index()
+  @ManyToOne(() => OrganizationEntity, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'OrganizationId' })
+  Organization: OrganizationEntity;
+
+  @Column({ type: 'uuid', nullable: true })
+  OrganizationId: string | null;
+
   @Index()
   @Column({ type: 'varchar', length: 255, nullable: false })
   Name: string;

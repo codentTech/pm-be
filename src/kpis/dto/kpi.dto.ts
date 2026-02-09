@@ -6,32 +6,26 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
-import { KpiPeriod } from 'src/core/database/entities/kpi.entity';
+import { KpiPeriod } from 'src/common/types/kpi-period.enum';
 
 export class CreateKpiDto {
+  @ApiPropertyOptional({ description: 'Organization ID (defaults to current org from header)' })
+  @IsOptional()
+  @IsUUID()
+  OrganizationId?: string;
   @ApiProperty({ example: 'Revenue', description: 'KPI name' })
   @IsString()
   @IsNotEmpty({ message: 'Name is required' })
   @MaxLength(255)
   Name: string;
 
-  @ApiProperty({ example: 10000, description: 'Target value' })
-  @IsNumber()
-  @IsNotEmpty()
-  TargetValue: number;
-
-  @ApiPropertyOptional({ example: 0, description: 'Current value', default: 0 })
+  @ApiPropertyOptional({ example: 0, description: 'Metric value', default: 0 })
   @IsOptional()
   @IsNumber()
-  CurrentValue?: number;
-
-  @ApiPropertyOptional({ example: 'USD', description: 'Unit' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  Unit?: string;
+  Value?: number;
 
   @ApiProperty({ enum: KpiPeriod, default: KpiPeriod.MONTHLY })
   @IsEnum(KpiPeriod)
@@ -57,21 +51,10 @@ export class UpdateKpiDto {
   @MaxLength(255)
   Name?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Metric value' })
   @IsOptional()
   @IsNumber()
-  TargetValue?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  CurrentValue?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  Unit?: string;
+  Value?: number;
 
   @ApiPropertyOptional({ enum: KpiPeriod })
   @IsOptional()

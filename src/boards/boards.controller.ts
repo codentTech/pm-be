@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -15,14 +16,16 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiResponse } from 'src/common/dto/api-response.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { OrgMemberGuard } from 'src/common/guards/org-member.guard';
 import { AuthenticatedRequest } from 'src/common/types/request.interface';
 import { UserEntity } from 'src/core/database/entities/user.entity';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto, UpdateBoardDto } from './dto/board.dto';
+import { BoardListQueryDto } from './dto/board-query.dto';
 
 @Controller('boards')
 @ApiTags('Boards')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OrgMemberGuard)
 @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor)
 export class BoardsController {
@@ -31,14 +34,25 @@ export class BoardsController {
   @Post()
   @ApiOperation({ summary: 'Create a board' })
   async create(@Body() dto: CreateBoardDto, @Req() req: AuthenticatedRequest) {
-    const response = await this.boardsService.create(dto, req.user as UserEntity);
+    const orgId = req.headers['x-organization-id'] as string | undefined;
+    const response = await this.boardsService.create(dto, req.user as UserEntity, orgId);
     return new ApiResponse(true, HttpStatus.CREATED, 'Board created successfully', response);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all boards for the current user' })
-  async findAll(@Req() req: AuthenticatedRequest) {
-    const response = await this.boardsService.findAll(req.user as UserEntity);
+  @ApiOperation({ summary: 'Get all boards for the current user (paginated)' })
+  async findAll(@Query() query: BoardListQueryDto, @Req() req: AuthenticatedRequest) {
+    const orgId = req.headers['x-organization-id'] as string | undefined;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const response = await this.boardsService.findAllPaginated(
+      req.user as UserEntity,
+      orgId,
+      page,
+      limit,
+      query.sort,
+      query.order,
+    );
     return new ApiResponse(true, HttpStatus.OK, 'Boards fetched successfully', response);
   }
 

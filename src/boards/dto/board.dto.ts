@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateBoardDto {
   @ApiProperty({ example: 'My Board', description: 'Board name' })
@@ -13,6 +13,11 @@ export class CreateBoardDto {
   @IsString()
   @MaxLength(1000)
   Description?: string;
+
+  @ApiPropertyOptional({ description: 'Organization ID (uses default org if omitted)' })
+  @IsOptional()
+  @IsUUID()
+  OrganizationId?: string;
 }
 
 export class UpdateBoardDto {

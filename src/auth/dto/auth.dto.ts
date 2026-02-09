@@ -46,6 +46,16 @@ export class RegisterDto extends LoginDto {
   Role: ROLE;
 }
 
+export class VerifyEmailDto {
+  @ApiProperty({
+    example: 'abc123token',
+    description: 'The verification token from email',
+    required: true,
+  })
+  @IsNotEmpty({ message: 'Token is required' })
+  Token: string;
+}
+
 export class ForgetPasswordDto {
   @ApiProperty({
     example: 'user@example.com',
@@ -55,4 +65,27 @@ export class ForgetPasswordDto {
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'Email is required' })
   Email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({
+    example: 'abc123token',
+    description: 'The password reset token from email',
+    required: true,
+  })
+  @IsNotEmpty({ message: 'Token is required' })
+  Token: string;
+
+  @ApiProperty({
+    example: 'NewStrongP@ssw0rd!',
+    description: 'The new password',
+    required: true,
+    minLength: 6,
+  })
+  @IsNotEmpty({ message: 'Password is required' })
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'Password is too weak',
+  })
+  NewPassword: string;
 }
