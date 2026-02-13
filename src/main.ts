@@ -1,6 +1,4 @@
 import { config } from "dotenv";
-config(); // Load .env before any module that reads process.env
-
 import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { join } from "path";
@@ -9,6 +7,8 @@ import { NestFactory, Reflector } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { GlobalExceptionFilter } from "./common/filters/exception.filter";
+
+config({ path: join(__dirname, "../.env") });
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
