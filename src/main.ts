@@ -27,6 +27,8 @@ async function bootstrap() {
     allowedHeaders: "Content-Type, Accept, Authorization, X-Organization-Id",
   });
 
+  app.set("trust proxy", 1);
+
   // Apply the Exception Filter
   app.useGlobalFilters(new GlobalExceptionFilter());
 
