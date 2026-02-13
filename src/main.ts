@@ -1,27 +1,30 @@
-import { config } from 'dotenv';
+import { config } from "dotenv";
 config(); // Load .env before any module that reads process.env
 
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
-import { ConfigService } from '@nestjs/config';
-import { NestFactory, Reflector } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { AppModule } from './app.module';
-import { GlobalExceptionFilter } from './common/filters/exception.filter';
+import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import { join } from "path";
+import { ConfigService } from "@nestjs/config";
+import { NestFactory, Reflector } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { AppModule } from "./app.module";
+import { GlobalExceptionFilter } from "./common/filters/exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
+  app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
 
   // Enable CORS
   app.enableCors({
-    origin: '*', // Allow all origins in development
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: [
+      "https://pm-fe-sigma.vercel.app", // Vercel frontend URL
+      "http://localhost:3000", // Local dev, optional
+    ],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization, X-Organization-Id'
+    allowedHeaders: "Content-Type, Accept, Authorization, X-Organization-Id",
   });
 
   // Apply the Exception Filter
@@ -36,20 +39,20 @@ async function bootstrap() {
       whitelist: true, // Removes unknown properties
       forbidNonWhitelisted: true, // Throws error on unknown properties
       transform: true, // Auto-transforms DTOs
-    })
+    }),
   );
 
   // Swagger Document Configration
   const config = new DocumentBuilder()
-    .setTitle('Expense App API')
-    .setDescription('API documentation for the Expense application')
-    .setVersion('1.0')
+    .setTitle("Expense App API")
+    .setDescription("API documentation for the Expense application")
+    .setVersion("1.0")
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup("api/docs", app, document);
 
-  const PORT = configService.get<number>('PORT') || 5000;
+  const PORT = configService.get<number>("PORT") || 5000;
 
   await app.listen(PORT, () => {
     console.log(`Server is & running on port ${PORT}`);
