@@ -34,6 +34,10 @@ export class TodoItemEntity extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   Position: number;
 
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  BidId: string | null;
+
   @OneToOne(() => TodoRecurrenceEntity, (rec) => rec.TodoItem, { cascade: true })
   Recurrence?: TodoRecurrenceEntity;
 }

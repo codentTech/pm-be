@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength, Matches } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Matches, Min } from 'class-validator';
 
 export class CreateOrganizationDto {
   @ApiProperty({ example: 'Acme Inc', description: 'Organization name' })
@@ -45,6 +45,24 @@ export class UpdateOrganizationDto {
   @IsString()
   @MaxLength(500)
   LogoUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Draft aging days', default: 7 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  DraftAgingDays?: number;
+
+  @ApiPropertyOptional({ description: 'Follow-up SLA days', default: 3 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  FollowUpSlaDays?: number;
+
+  @ApiPropertyOptional({ description: 'Ghosted suggestion days', default: 14 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  GhostedSuggestDays?: number;
 }
 
 export class UpdateMemberRoleDto {

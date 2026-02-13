@@ -7,7 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { BoardEntity } from './board.entity';
+import { ProjectEntity } from './project.entity';
 import { CardEntity } from './card.entity';
 
 @Entity({ name: 'Lists' })
@@ -19,12 +19,12 @@ export class ListEntity extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   Position: number;
 
-  @ManyToOne(() => BoardEntity, (board) => board.Lists, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'BoardId' })
-  Board: BoardEntity;
+  @ManyToOne(() => ProjectEntity, (project) => project.Lists, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ProjectId' })
+  Project: ProjectEntity;
 
   @Column({ type: 'uuid', nullable: false })
-  BoardId: string;
+  ProjectId: string;
 
   @OneToMany(() => CardEntity, (card) => card.List)
   Cards: CardEntity[];

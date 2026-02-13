@@ -1,0 +1,15 @@
+export enum WorkItemType {
+  TICKET_WORK = 'ticket_work',
+  BUG_FIX = 'bug_fix',
+  CODE_REVIEW = 'code_review',
+  MEETING = 'meeting',
+  SUPPORT = 'support',
+  TECH_DEBT = 'tech_debt',
+  BID_DRAFTED = 'bid_drafted',
+  BID_SUBMITTED = 'bid_submitted',
+  FOLLOW_UP = 'follow_up',
+  INTERVIEW = 'interview',
+  PROPOSAL_REVISION = 'proposal_revision',
+  CLIENT_COMMUNICATION = 'client_communication',
+  RESEARCH = 'research',
+}

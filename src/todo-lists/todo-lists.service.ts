@@ -37,7 +37,7 @@ export class TodoListsService {
     const list = this.todoListRepository.create({
       Name: dto.Name,
       OrganizationId: resolvedOrgId,
-      BoardId: dto.BoardId ?? null,
+      ProjectId: dto.ProjectId ?? null,
       Position: dto.Position ?? 0,
       CreatedBy: user,
     });

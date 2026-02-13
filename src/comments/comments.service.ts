@@ -20,15 +20,15 @@ export class CommentsService {
   private async ensureCardAccess(cardId: string, userId: string): Promise<void> {
     const card = await this.cardRepository.findOneById(cardId, [
       'List',
-      'List.Board',
-      'List.Board.CreatedBy',
+      'List.Project',
+      'List.Project.CreatedBy',
     ]);
     if (!card) throw new NotFoundException('Card not found');
-    const board = card.List?.Board;
-    if (board?.OrganizationId) {
-      const isMember = await this.orgMemberRepository.isMember(userId, board.OrganizationId);
+    const project = card.List?.Project;
+    if (project?.OrganizationId) {
+      const isMember = await this.orgMemberRepository.isMember(userId, project.OrganizationId);
       if (!isMember) throw new ForbiddenException('Access denied');
-    } else if (board?.CreatedBy?.Id !== userId) {
+    } else if (project?.CreatedBy?.Id !== userId) {
       throw new ForbiddenException('Access denied');
     }
   }

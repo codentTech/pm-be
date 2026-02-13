@@ -21,12 +21,12 @@ export class SearchService {
     q: string,
     type?: SearchResultType,
     orgId?: string,
-    boardId?: string,
+    projectId?: string,
     limit = 20,
   ): Promise<SearchResponse> {
     const term = (q || '').trim().toLowerCase();
     if (!term) {
-      return { cards: [], todos: [], boards: [], kpis: [], workspaces: [] };
+      return { cards: [], todos: [], projects: [], kpis: [], workspaces: [] };
     }
 
     const orgIds = orgId ? [orgId] : await this.getAccessibleOrgIds(userId);
@@ -36,40 +36,40 @@ export class SearchService {
     const result: SearchResponse = {
       cards: [],
       todos: [],
-      boards: [],
+      projects: [],
       kpis: [],
       workspaces: [],
     };
 
-    if (!type || type === SearchResultType.BOARD) {
-      const boardParams: unknown[] = [searchPattern, userId, ...idsForIn];
+    if (!type || type === SearchResultType.PROJECT) {
+      const projectParams: unknown[] = [searchPattern, userId, ...idsForIn];
       const orgInPlaceholders = idsForIn.map((_, i) => `$${i + 3}`).join(', ');
-      let boardSql = `
-        SELECT DISTINCT b."Id", b."Name", b."Description"
-        FROM "Boards" b
-        LEFT JOIN "Lists" l ON l."BoardId" = b."Id"
+      let projectSql = `
+        SELECT DISTINCT p."Id", p."Name", p."Description"
+        FROM "Projects" p
+        LEFT JOIN "Lists" l ON l."ProjectId" = p."Id"
         WHERE (
-          LOWER(b."Name") LIKE $1
-          OR LOWER(COALESCE(b."Description", '')) LIKE $1
+          LOWER(p."Name") LIKE $1
+          OR LOWER(COALESCE(p."Description", '')) LIKE $1
           OR LOWER(l."Title") LIKE $1
         )
-          AND ((b."OrganizationId" IS NULL AND b."CreatedBy" = $2) OR (b."OrganizationId" IN (${orgInPlaceholders})))
+          AND ((p."OrganizationId" IS NULL AND p."CreatedBy" = $2) OR (p."OrganizationId" IN (${orgInPlaceholders})))
       `;
       if (orgId) {
-        boardParams.push(orgId);
-        boardSql += ` AND b."OrganizationId" = $${boardParams.length}`;
+        projectParams.push(orgId);
+        projectSql += ` AND p."OrganizationId" = $${projectParams.length}`;
       }
-      boardParams.push(limit);
-      boardSql += ` ORDER BY b."Name" ASC LIMIT $${boardParams.length}`;
+      projectParams.push(limit);
+      projectSql += ` ORDER BY p."Name" ASC LIMIT $${projectParams.length}`;
 
-      const boards = await this.dataSource.query(boardSql, boardParams);
-      result.boards = boards.map(
-        (b: { Id: string; Name: string; Description?: string }): SearchResultItem => ({
-          type: SearchResultType.BOARD,
-          id: b.Id,
-          title: b.Name,
-          subtitle: b.Description || undefined,
-          url: `/projects/${b.Id}`,
+      const projects = await this.dataSource.query(projectSql, projectParams);
+      result.projects = projects.map(
+        (p: { Id: string; Name: string; Description?: string }): SearchResultItem => ({
+          type: SearchResultType.PROJECT,
+          id: p.Id,
+          title: p.Name,
+          subtitle: p.Description || undefined,
+          url: `/projects/${p.Id}`,
         }),
       );
     }
@@ -79,31 +79,31 @@ export class SearchService {
       const orgInPlaceholders = idsForIn.map((_, i) => `$${i + 3}`).join(', ');
       let cardSql = `
         SELECT DISTINCT c."Id" as "card_Id", c."Title" as "card_Title", c."Description" as "card_Description",
-               l."BoardId" as "list_BoardId", b."Name" as "board_Name"
+               l."ProjectId" as "list_ProjectId", p."Name" as "project_Name"
         FROM "Cards" c
         INNER JOIN "Lists" l ON c."ListId" = l."Id"
-        INNER JOIN "Boards" b ON l."BoardId" = b."Id"
+        INNER JOIN "Projects" p ON l."ProjectId" = p."Id"
         LEFT JOIN "CardLabels" cl ON cl."CardId" = c."Id"
         LEFT JOIN "Labels" lbl ON cl."LabelId" = lbl."Id"
         WHERE (
           LOWER(c."Title") LIKE $1
           OR LOWER(COALESCE(c."Description", '')) LIKE $1
           OR LOWER(l."Title") LIKE $1
-          OR LOWER(b."Name") LIKE $1
-          OR LOWER(COALESCE(b."Description", '')) LIKE $1
+          OR LOWER(p."Name") LIKE $1
+          OR LOWER(COALESCE(p."Description", '')) LIKE $1
           OR LOWER(COALESCE(lbl."Name", '')) LIKE $1
           OR EXISTS (SELECT 1 FROM "Comments" cm WHERE cm."CardId" = c."Id" AND LOWER(cm."Content") LIKE $1)
           OR EXISTS (SELECT 1 FROM "Checklists" ch WHERE ch."CardId" = c."Id" AND LOWER(ch."Title") LIKE $1)
         )
-          AND ((b."OrganizationId" IS NULL AND b."CreatedBy" = $2) OR (b."OrganizationId" IN (${orgInPlaceholders})))
+          AND ((p."OrganizationId" IS NULL AND p."CreatedBy" = $2) OR (p."OrganizationId" IN (${orgInPlaceholders})))
       `;
       if (orgId) {
         cardParams.push(orgId);
-        cardSql += ` AND b."OrganizationId" = $${cardParams.length}`;
+        cardSql += ` AND p."OrganizationId" = $${cardParams.length}`;
       }
-      if (boardId) {
-        cardParams.push(boardId);
-        cardSql += ` AND b."Id" = $${cardParams.length}`;
+      if (projectId) {
+        cardParams.push(projectId);
+        cardSql += ` AND p."Id" = $${cardParams.length}`;
       }
       cardParams.push(limit);
       cardSql += ` ORDER BY c."Title" ASC LIMIT $${cardParams.length}`;
@@ -114,16 +114,16 @@ export class SearchService {
           card_Id: string;
           card_Title: string;
           card_Description?: string;
-          list_BoardId: string;
-          board_Name: string;
+          list_ProjectId: string;
+          project_Name: string;
         }) => ({
           type: SearchResultType.CARD,
           id: c.card_Id,
           title: c.card_Title,
           subtitle: c.card_Description || undefined,
-          url: `/projects/${c.list_BoardId}`,
-          boardId: c.list_BoardId,
-          boardName: c.board_Name,
+          url: `/projects/${c.list_ProjectId}`,
+          projectId: c.list_ProjectId,
+          projectName: c.project_Name,
         }),
       );
     }
@@ -143,9 +143,9 @@ export class SearchService {
         todoParams.push(orgId);
         todoSql += ` AND tl."OrganizationId" = $${todoParams.length}`;
       }
-      if (boardId) {
-        todoParams.push(boardId);
-        todoSql += ` AND tl."BoardId" = $${todoParams.length}`;
+      if (projectId) {
+        todoParams.push(projectId);
+        todoSql += ` AND tl."ProjectId" = $${todoParams.length}`;
       }
       todoParams.push(limit);
       todoSql += ` ORDER BY t."Title" ASC LIMIT $${todoParams.length}`;
@@ -163,7 +163,7 @@ export class SearchService {
           title: t.todo_Title,
           subtitle: t.todo_Description || t.todoList_Name || undefined,
           url: '/todos',
-          boardName: t.todoList_Name,
+          projectName: t.todoList_Name,
         }),
       );
     }

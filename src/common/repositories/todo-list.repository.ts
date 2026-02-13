@@ -38,7 +38,7 @@ export class TodoListRepository extends BaseRepository<TodoListEntity> {
   async findOneById(id: string): Promise<TodoListEntity | null> {
     return this.repo.findOne({
       where: { Id: id },
-      relations: ['TodoItems', 'TodoItems.Recurrence', 'Organization', 'Board'],
+      relations: ['TodoItems', 'TodoItems.Recurrence', 'Organization', 'Project'],
     });
   }
 

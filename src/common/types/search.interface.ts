@@ -6,14 +6,14 @@ export interface SearchResultItem {
   title: string;
   subtitle?: string;
   url: string;
-  boardId?: string;
-  boardName?: string;
+  projectId?: string;
+  projectName?: string;
 }
 
 export interface SearchResponse {
   cards: SearchResultItem[];
   todos: SearchResultItem[];
-  boards: SearchResultItem[];
+  projects: SearchResultItem[];
   kpis: SearchResultItem[];
   workspaces: SearchResultItem[];
 }

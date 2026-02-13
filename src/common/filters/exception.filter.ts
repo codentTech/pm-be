@@ -15,6 +15,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     const statusCode = exception?.getStatus?.() ?? 500;
+    if (statusCode >= 500) {
+      const error = exception as unknown as Error;
+      console.error(error?.stack || error);
+    }
 
     // Handle Validation Errors from class-validator
     if (exception instanceof BadRequestException) {

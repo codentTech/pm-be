@@ -36,12 +36,12 @@ export class ListsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get lists by board ID' })
-  async findAllByBoardId(
-    @Query('boardId') boardId: string,
+  @ApiOperation({ summary: 'Get lists by project ID' })
+  async findAllByProjectId(
+    @Query('projectId') projectId: string,
     @Req() req: AuthenticatedRequest,
   ) {
-    const response = await this.listsService.findAllByBoardId(boardId, req.user);
+    const response = await this.listsService.findAllByProjectId(projectId, req.user);
     return new ApiResponse(true, HttpStatus.OK, 'Lists fetched successfully', response);
   }
 

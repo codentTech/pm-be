@@ -8,10 +8,10 @@ export class CreateListDto {
   @MaxLength(255)
   Title: string;
 
-  @ApiProperty({ description: 'Board ID' })
+  @ApiProperty({ description: 'Project ID' })
   @IsUUID()
   @IsNotEmpty()
-  BoardId: string;
+  ProjectId: string;
 
   @ApiPropertyOptional({ description: 'Position order', default: 0 })
   @IsOptional()

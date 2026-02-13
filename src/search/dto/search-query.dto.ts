@@ -21,10 +21,10 @@ export class SearchQueryDto extends PaginationQueryDto {
   @IsUUID()
   orgId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by board ID' })
+  @ApiPropertyOptional({ description: 'Filter by project ID' })
   @IsOptional()
   @IsUUID()
-  boardId?: string;
+  projectId?: string;
 
   /** Search limits results per type (1-50), override parent limit */
   @ApiPropertyOptional({ description: 'Max results per type (1-50)', default: 20 })

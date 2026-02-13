@@ -17,7 +17,7 @@ export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Global search across cards, todos, and boards' })
+  @ApiOperation({ summary: 'Global search across cards, todos, and projects' })
   async search(@Query() query: SearchQueryDto, @Req() req: AuthenticatedRequest) {
     const user = req.user as UserEntity;
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 50);
@@ -26,7 +26,7 @@ export class SearchController {
       query.q?.trim() ?? '',
       query.type,
       query.orgId,
-      query.boardId,
+      query.projectId,
       limit,
     );
     return new ApiResponse(true, HttpStatus.OK, 'Search results', response);

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { BidRepository } from 'src/common/repositories/bid.repository';
 import { TodoItemRepository } from 'src/common/repositories/todo-item.repository';
 import { TodoListRepository } from 'src/common/repositories/todo-list.repository';
 import { TodoRecurrenceRepository } from 'src/common/repositories/todo-recurrence.repository';
@@ -11,6 +12,7 @@ import { TodoItemsService } from './todo-items.service';
   controllers: [TodoItemsController],
   providers: [
     TodoItemsService,
+    BidRepository,
     TodoItemRepository,
     TodoListRepository,
     TodoRecurrenceRepository,

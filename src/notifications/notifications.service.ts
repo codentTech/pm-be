@@ -3,14 +3,14 @@ import { createPaginatedResponse } from 'src/common/dto/paginated-response.dto';
 import { NotificationRepository } from 'src/common/repositories/notification.repository';
 import { NotificationEntity } from 'src/core/database/entities/notification.entity';
 import { UserEntity } from 'src/core/database/entities/user.entity';
-import { BoardGateway } from 'src/websocket/board.gateway';
+import { ProjectGateway } from 'src/websocket/project.gateway';
 import { CreateNotificationDto } from 'src/common/types/create-notification.interface';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly notificationRepository: NotificationRepository,
-    private readonly boardGateway: BoardGateway,
+    private readonly projectGateway: ProjectGateway,
   ) {}
 
   async create(dto: CreateNotificationDto): Promise<NotificationEntity> {
@@ -23,7 +23,7 @@ export class NotificationsService {
       IsRead: false,
     });
     const saved = await this.notificationRepository.save(notification);
-    this.boardGateway.emitNotificationToUser(dto.UserId, saved as unknown as Record<string, unknown>);
+    this.projectGateway.emitNotificationToUser(dto.UserId, saved as unknown as Record<string, unknown>);
     return saved;
   }
 

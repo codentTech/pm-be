@@ -95,6 +95,11 @@ export class CreateTodoItemDto {
   @ValidateNested()
   @Type(() => RecurrenceDto)
   Recurrence?: RecurrenceDto;
+
+  @ApiPropertyOptional({ description: 'Linked bid ID' })
+  @IsOptional()
+  @IsUUID()
+  BidId?: string;
 }
 
 export class UpdateTodoItemDto {
@@ -138,4 +143,9 @@ export class UpdateTodoItemDto {
   @ValidateNested()
   @Type(() => RecurrenceDto)
   Recurrence?: RecurrenceDto | null;
+
+  @ApiPropertyOptional({ description: 'Linked bid ID' })
+  @IsOptional()
+  @IsUUID()
+  BidId?: string | null;
 }

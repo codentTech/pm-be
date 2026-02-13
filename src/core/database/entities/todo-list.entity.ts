@@ -1,6 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { BoardEntity } from './board.entity';
+import { ProjectEntity } from './project.entity';
 import { OrganizationEntity } from './organization.entity';
 import { TodoItemEntity } from './todo-item.entity';
 
@@ -14,12 +14,12 @@ export class TodoListEntity extends BaseEntity {
   @Column({ type: 'uuid', nullable: true })
   OrganizationId: string | null;
 
-  @ManyToOne(() => BoardEntity, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'BoardId' })
-  Board: BoardEntity;
+  @ManyToOne(() => ProjectEntity, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'ProjectId' })
+  Project: ProjectEntity;
 
   @Column({ type: 'uuid', nullable: true })
-  BoardId: string | null;
+  ProjectId: string | null;
 
   @Index()
   @Column({ type: 'varchar', length: 255, nullable: false })

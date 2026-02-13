@@ -108,6 +108,9 @@ export class OrganizationsService {
 
     if (dto.Name) org.Name = dto.Name;
     if (dto.LogoUrl !== undefined) org.LogoUrl = dto.LogoUrl;
+    if (dto.DraftAgingDays !== undefined) org.DraftAgingDays = dto.DraftAgingDays;
+    if (dto.FollowUpSlaDays !== undefined) org.FollowUpSlaDays = dto.FollowUpSlaDays;
+    if (dto.GhostedSuggestDays !== undefined) org.GhostedSuggestDays = dto.GhostedSuggestDays;
     if (dto.Slug) {
       const existing = await this.orgRepository.findBySlug(dto.Slug);
       if (existing && existing.Id !== id) {

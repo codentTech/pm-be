@@ -7,10 +7,10 @@ export class CreateTodoListDto {
   @IsUUID()
   OrganizationId?: string;
 
-  @ApiPropertyOptional({ description: 'Optional board/project to link this list to' })
+  @ApiPropertyOptional({ description: 'Optional project to link this list to' })
   @IsOptional()
   @IsUUID()
-  BoardId?: string;
+  ProjectId?: string;
 
   @ApiProperty({ example: 'My Tasks', description: 'Todo list name' })
   @IsNotEmpty({ message: 'Name is required' })
@@ -27,7 +27,7 @@ export class UpdateTodoListDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
-  BoardId?: string;
+  ProjectId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

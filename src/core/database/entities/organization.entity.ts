@@ -15,6 +15,15 @@ export class OrganizationEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 500, nullable: true })
   LogoUrl: string;
 
+  @Column({ type: 'int', default: 7 })
+  DraftAgingDays: number;
+
+  @Column({ type: 'int', default: 3 })
+  FollowUpSlaDays: number;
+
+  @Column({ type: 'int', default: 14 })
+  GhostedSuggestDays: number;
+
   @OneToMany(() => OrganizationMemberEntity, (member) => member.Organization)
   Members: OrganizationMemberEntity[];
 }

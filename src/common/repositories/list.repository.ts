@@ -13,12 +13,20 @@ export class ListRepository extends BaseRepository<ListEntity> {
     return this.getRepository();
   }
 
-  async findAllByBoardId(boardId: string): Promise<ListEntity[]> {
+  async findAllByProjectId(projectId: string): Promise<ListEntity[]> {
     return this.repo.find({
-      where: { BoardId: boardId },
+      where: { ProjectId: projectId },
       relations: ['Cards'],
       order: { Position: 'ASC', Cards: { Position: 'ASC' } },
     });
+  }
+
+  async findIdsByProjectId(projectId: string): Promise<string[]> {
+    const rows = await this.repo.find({
+      where: { ProjectId: projectId },
+      select: { Id: true },
+    });
+    return rows.map((row) => row.Id);
   }
 
   async findOneById(
@@ -31,10 +39,10 @@ export class ListRepository extends BaseRepository<ListEntity> {
     });
   }
 
-  async getNextPositionForBoard(boardId: string): Promise<number> {
+  async getNextPositionForProject(projectId: string): Promise<number> {
     const result = await this.repo
       .createQueryBuilder('list')
-      .where('list.BoardId = :boardId', { boardId })
+      .where('list.ProjectId = :projectId', { projectId })
       .select('COALESCE(MAX(list.Position), 0) + 1', 'next')
       .getRawOne<{ next: string }>();
     return result?.next ? parseInt(result.next, 10) : 1;

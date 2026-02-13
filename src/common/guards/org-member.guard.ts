@@ -58,9 +58,9 @@ export class OrgMemberGuard implements CanActivate {
     const queryOrgId = req.query?.orgId as string | undefined;
     if (queryOrgId && UUID_REGEX.test(String(queryOrgId))) return String(queryOrgId).trim();
 
-    // Do NOT use params.id for /boards, /kpis, /todo-lists - id is entity ID, not org ID
+    // Do NOT use params.id for /projects, /kpis, /bids, /todo-lists - id is entity ID, not org ID
     const path = (req.originalUrl ?? req.url ?? '').split('?')[0].toLowerCase();
-    const isEntityRoute = /^\/(boards|kpis|todo-lists)(\/|$)/.test(path);
+    const isEntityRoute = /^\/(projects|kpis|bids|todo-lists)(\/|$)/.test(path);
     if (!isEntityRoute) {
       const paramId = req.params?.id as string | undefined;
       if (paramId && UUID_REGEX.test(paramId)) return paramId;

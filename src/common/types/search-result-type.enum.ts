@@ -1,7 +1,7 @@
 export enum SearchResultType {
   CARD = 'card',
   TODO = 'todo',
-  BOARD = 'board',
+  PROJECT = 'project',
   KPI = 'kpi',
   WORKSPACE = 'workspace',
 }
