@@ -17,7 +17,7 @@ export class InvitationEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: false })
   Email: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: false, default: OrgRole.MEMBER })
+  @Column({ type: 'varchar', length: 32, nullable: false, default: OrgRole.DEVELOPER })
   Role: OrgRole;
 
   @Index({ unique: true })

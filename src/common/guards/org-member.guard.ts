@@ -3,15 +3,12 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { OrganizationMemberRepository } from 'src/common/repositories/organization-member.repository';
-import { AuthenticatedRequest } from 'src/common/types/request.interface';
-import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { IS_PUBLIC_KEY } from "src/common/decorators/public.decorator";
+import { OrganizationMemberRepository } from "src/common/repositories/organization-member.repository";
+import { ROLE } from "src/common/types/roles.enum";
+import { AuthenticatedRequest } from "src/common/types/request.interface";
 /**
  * Guard that validates the user is a member of the organization.
  * Extracts org ID from:
@@ -38,32 +35,36 @@ export class OrgMemberGuard implements CanActivate {
     const user = request.user;
     if (!user?.Id) return false;
 
+    if ((user as { SystemRole?: string }).SystemRole === ROLE.SUPER_ADMIN) {
+      return true;
+    }
+
     const orgId = this.getOrgId(request);
     if (!orgId) return true;
 
     const isMember = await this.orgMemberRepository.isMember(user.Id, orgId);
     if (!isMember) {
-      throw new ForbiddenException('You are not a member of this organization');
+      throw new ForbiddenException("You are not a member of this organization");
     }
     return true;
   }
 
   private getOrgId(req: AuthenticatedRequest): string | null {
-    const headerOrgId = req.headers['x-organization-id'] as string | undefined;
+    const headerOrgId = req.headers["x-organization-id"] as string | undefined;
     if (headerOrgId?.trim()) return headerOrgId.trim();
 
     const paramOrgId = req.params?.orgId as string | undefined;
-    if (paramOrgId && UUID_REGEX.test(paramOrgId)) return paramOrgId;
+    if (paramOrgId) return paramOrgId;
 
     const queryOrgId = req.query?.orgId as string | undefined;
-    if (queryOrgId && UUID_REGEX.test(String(queryOrgId))) return String(queryOrgId).trim();
+    if (queryOrgId) return String(queryOrgId).trim();
 
     // Do NOT use params.id for /projects, /kpis, /bids, /todo-lists - id is entity ID, not org ID
-    const path = (req.originalUrl ?? req.url ?? '').split('?')[0].toLowerCase();
+    const path = (req.originalUrl ?? req.url ?? "").split("?")[0].toLowerCase();
     const isEntityRoute = /^\/(projects|kpis|bids|todo-lists)(\/|$)/.test(path);
     if (!isEntityRoute) {
       const paramId = req.params?.id as string | undefined;
-      if (paramId && UUID_REGEX.test(paramId)) return paramId;
+      if (paramId) return paramId;
     }
 
     return null;

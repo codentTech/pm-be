@@ -13,6 +13,13 @@ export class OrganizationRepository extends BaseRepository<OrganizationEntity> {
     return this.getRepository();
   }
 
+  async findAll(): Promise<OrganizationEntity[]> {
+    return this.repo.find({
+      relations: ['Members', 'Members.User'],
+      order: { CreatedAt: 'DESC' },
+    });
+  }
+
   async findById(id: string): Promise<OrganizationEntity | null> {
     return this.repo.findOne({
       where: { Id: id },

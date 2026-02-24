@@ -13,7 +13,12 @@ import { UserRepository } from "src/common/repositories/user.repository";
 import { BcryptService } from "src/common/services/bcrypt.service";
 import { EmailService } from "src/common/services/email.service";
 import { UserEntity } from "src/core/database/entities/user.entity";
-import { ForgetPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from "./dto/auth.dto";
+import {
+  ForgetPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+} from "./dto/auth.dto";
 import { ILoginResponse, IOAuthUser } from "./interfaces/auth.interface";
 
 @Injectable()
@@ -29,7 +34,7 @@ export class AuthService {
     private readonly emailService: EmailService,
   ) {
     this.auth0Domain = configService.get<string>("AUTH0_DOMAIN") || "";
-    this.frontendUrl = configService.get<string>("FRONTEND_URL") || "http://localhost:3000";
+    this.frontendUrl = configService.get<string>("FRONTEND_URL");
   }
 
   private generateToken(): string {
@@ -79,8 +84,12 @@ export class AuthService {
     const user = await this.userRepository.findOneRecord({
       VerificationToken: token,
     });
-    if (!user) throw new BadRequestException(AuthErrors.VERIFICATION_TOKEN_INVALID);
-    if (user.VerificationTokenExpiresAt && user.VerificationTokenExpiresAt < new Date()) {
+    if (!user)
+      throw new BadRequestException(AuthErrors.VERIFICATION_TOKEN_INVALID);
+    if (
+      user.VerificationTokenExpiresAt &&
+      user.VerificationTokenExpiresAt < new Date()
+    ) {
       throw new BadRequestException(AuthErrors.VERIFICATION_TOKEN_INVALID);
     }
 
@@ -117,11 +126,16 @@ export class AuthService {
       PasswordResetToken: data.Token,
     });
     if (!user) throw new BadRequestException(AuthErrors.RESET_TOKEN_INVALID);
-    if (user.PasswordResetTokenExpiresAt && user.PasswordResetTokenExpiresAt < new Date()) {
+    if (
+      user.PasswordResetTokenExpiresAt &&
+      user.PasswordResetTokenExpiresAt < new Date()
+    ) {
       throw new BadRequestException(AuthErrors.RESET_TOKEN_INVALID);
     }
 
-    const hashedPassword = await this.bcryptService.hashPassword(data.NewPassword);
+    const hashedPassword = await this.bcryptService.hashPassword(
+      data.NewPassword,
+    );
     await this.userRepository.getORMMethods().update(user.Id, {
       Password: hashedPassword,
       PasswordResetToken: null,
@@ -142,14 +156,14 @@ export class AuthService {
     // Check if user exists
     const user = await this.userRepository.findOneRecord(
       { Email },
-      { relations: true }
+      { relations: true },
     );
     if (!user) throw new NotFoundException(AuthErrors.USER_NOT_FOUND);
 
     // Verify password
     const matched = await this.bcryptService.comparePassword(
       Password,
-      user.Password
+      user.Password,
     );
     if (!matched) throw new BadRequestException(AuthErrors.INVALID_CREDENTIALS);
 
@@ -203,7 +217,7 @@ export class AuthService {
       `https://${this.auth0Domain}/userinfo`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
-      }
+      },
     );
 
     const { email, name } = auth0Response.data;

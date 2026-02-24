@@ -82,7 +82,7 @@ async function run() {
       const member = memberRepo.create({
         OrganizationId: defaultOrg.Id,
         UserId: user.Id,
-        Role: OrgRole.OWNER,
+        Role: OrgRole.ORG_ADMIN,
       });
       await memberRepo.save(member);
       orgsCreated++;

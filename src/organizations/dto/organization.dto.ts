@@ -1,5 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Matches, Min } from 'class-validator';
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Matches, Min } from 'class-validator';
+
+export class CreateOrganizationWithOwnerDto {
+  @ApiProperty({ example: 'Acme Inc', description: 'Workspace name' })
+  @IsString()
+  @IsNotEmpty({ message: 'Name is required' })
+  @MaxLength(255)
+  Name: string;
+
+  @ApiPropertyOptional({ example: 'acme-inc', description: 'URL-friendly slug (auto-generated if omitted)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'Slug must be lowercase alphanumeric with hyphens only',
+  })
+  Slug?: string;
+
+  @ApiProperty({ example: 'owner@example.com', description: 'Email of the user who will be the workspace owner' })
+  @IsEmail()
+  @IsNotEmpty({ message: 'Owner email is required' })
+  OwnerEmail: string;
+}
 
 export class CreateOrganizationDto {
   @ApiProperty({ example: 'Acme Inc', description: 'Organization name' })
@@ -66,7 +88,7 @@ export class UpdateOrganizationDto {
 }
 
 export class UpdateMemberRoleDto {
-  @ApiProperty({ example: 'member', description: 'Role: owner, admin, member, guest' })
+  @ApiProperty({ example: 'developer', description: 'Role: developer, project_manager, quality_assurance_engineer, seo_specialist, business_developer' })
   @IsString()
   @IsNotEmpty({ message: 'Role is required' })
   Role: string;

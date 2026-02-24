@@ -32,7 +32,7 @@ export class OrganizationMemberRepository extends BaseRepository<OrganizationMem
     return this.repo.find({
       where: { UserId: userId },
       relations: ['Organization'],
-      order: { Role: 'ASC' }, // Owner first
+      order: { Role: 'ASC' }, // Project managers first
     });
   }
 

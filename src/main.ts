@@ -5,14 +5,24 @@ import { join } from "path";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory, Reflector } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { DataSource } from "typeorm";
 import { AppModule } from "./app.module";
 import { GlobalExceptionFilter } from "./common/filters/exception.filter";
+import { superAdminSeeder } from "./core/seeders/super-admin.seeder";
 
 config({ path: join(__dirname, "../.env") });
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+
+  // Run super admin seeder
+  try {
+    const dataSource = app.get(DataSource);
+    await superAdminSeeder(dataSource);
+  } catch (err) {
+    console.error("Super admin seeder failed:", err);
+  }
 
   app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
 

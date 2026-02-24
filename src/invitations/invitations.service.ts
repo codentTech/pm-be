@@ -3,19 +3,18 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { UserRepository } from 'src/common/repositories/user.repository';
-import { InvitationRepository } from 'src/common/repositories/invitation.repository';
-import { OrganizationMemberRepository } from 'src/common/repositories/organization-member.repository';
-import { OrganizationRepository } from 'src/common/repositories/organization.repository';
-import { OrganizationsService } from 'src/organizations/organizations.service';
-import { EmailService } from 'src/common/services/email.service';
-import { OrgRole } from 'src/common/types/org-role.enum';
-import { InvitationEntity } from 'src/core/database/entities/invitation.entity';
-import { UserEntity } from 'src/core/database/entities/user.entity';
-import { CreateInvitationDto } from './dto/invitation.dto';
-import * as crypto from 'crypto';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as crypto from "crypto";
+import { InvitationRepository } from "src/common/repositories/invitation.repository";
+import { OrganizationMemberRepository } from "src/common/repositories/organization-member.repository";
+import { UserRepository } from "src/common/repositories/user.repository";
+import { EmailService } from "src/common/services/email.service";
+import { OrgRole } from "src/common/types/org-role.enum";
+import { InvitationEntity } from "src/core/database/entities/invitation.entity";
+import { UserEntity } from "src/core/database/entities/user.entity";
+import { OrganizationsService } from "src/organizations/organizations.service";
+import { CreateInvitationDto } from "./dto/invitation.dto";
 
 @Injectable()
 export class InvitationsService {
@@ -29,11 +28,11 @@ export class InvitationsService {
     private readonly emailService: EmailService,
     configService: ConfigService,
   ) {
-    this.frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    this.frontendUrl = configService.get<string>("FRONTEND_URL");
   }
 
   private generateToken(): string {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
   }
 
   async getPreview(token: string): Promise<{
@@ -48,41 +47,55 @@ export class InvitationsService {
     if (invitation.AcceptedAt) return null;
     if (invitation.ExpiresAt < new Date()) return null;
 
-    const org = await this.organizationsService.findById(invitation.OrganizationId);
+    const org = await this.organizationsService.findById(
+      invitation.OrganizationId,
+    );
     const inviter = invitation.CreatedBy;
     return {
-      organizationName: org?.Name ?? 'Unknown',
-      inviterName: inviter?.FullName ?? 'Someone',
+      organizationName: org?.Name ?? "Unknown",
+      inviterName: inviter?.FullName ?? "Someone",
       role: invitation.Role,
       expiresAt: invitation.ExpiresAt,
       email: invitation.Email,
     };
   }
 
-  async create(orgId: string, dto: CreateInvitationDto, user: UserEntity): Promise<InvitationEntity> {
-    const hasPermission = await this.orgMemberRepository.hasRole(user.Id, orgId, [
-      OrgRole.OWNER,
-      OrgRole.ADMIN,
-    ]);
-    if (!hasPermission) throw new ForbiddenException('You cannot invite to this organization');
+  async create(
+    orgId: string,
+    dto: CreateInvitationDto,
+    user: UserEntity,
+  ): Promise<InvitationEntity> {
+    const hasPermission = await this.orgMemberRepository.hasRole(
+      user.Id,
+      orgId,
+      [OrgRole.ORG_ADMIN],
+    );
+    if (!hasPermission)
+      throw new ForbiddenException("You cannot invite to this organization");
 
     const org = await this.organizationsService.findOne(orgId, user);
     const email = dto.Email.toLowerCase().trim();
 
     const existingUser = await this.userRepository
       .getORMMethods()
-      .createQueryBuilder('u')
-      .where('LOWER(u.Email) = :email', { email })
+      .createQueryBuilder("u")
+      .where("LOWER(u.Email) = :email", { email })
       .getOne();
     if (existingUser) {
-      const isMember = await this.orgMemberRepository.isMember(existingUser.Id, orgId);
-      if (isMember) throw new BadRequestException('User is already a member');
+      const isMember = await this.orgMemberRepository.isMember(
+        existingUser.Id,
+        orgId,
+      );
+      if (isMember) throw new BadRequestException("User is already a member");
     }
 
-    const existingInvite = await this.invitationRepository.findByEmailAndOrg(email, orgId);
+    const existingInvite = await this.invitationRepository.findByEmailAndOrg(
+      email,
+      orgId,
+    );
     if (existingInvite) {
       if (existingInvite.ExpiresAt > new Date()) {
-        throw new BadRequestException('Invitation already sent to this email');
+        throw new BadRequestException("Invitation already sent to this email");
       }
       await this.invitationRepository.remove(existingInvite);
     }
@@ -112,36 +125,48 @@ export class InvitationsService {
     return saved;
   }
 
-  async findPendingByOrg(orgId: string, user: UserEntity): Promise<InvitationEntity[]> {
-    const hasPermission = await this.orgMemberRepository.hasRole(user.Id, orgId, [
-      OrgRole.OWNER,
-      OrgRole.ADMIN,
-    ]);
-    if (!hasPermission) throw new ForbiddenException('You cannot view invitations');
+  async findPendingByOrg(
+    orgId: string,
+    user: UserEntity,
+  ): Promise<InvitationEntity[]> {
+    const hasPermission = await this.orgMemberRepository.hasRole(
+      user.Id,
+      orgId,
+      [OrgRole.ORG_ADMIN],
+    );
+    if (!hasPermission)
+      throw new ForbiddenException("You cannot view invitations");
 
     return this.invitationRepository.findPendingByOrg(orgId);
   }
 
   async findPendingForUser(user: UserEntity): Promise<InvitationEntity[]> {
-    return this.invitationRepository.findPendingByEmail(user.Email.toLowerCase());
+    return this.invitationRepository.findPendingByEmail(
+      user.Email.toLowerCase(),
+    );
   }
 
   async accept(token: string, user: UserEntity): Promise<void> {
     const invitation = await this.invitationRepository.findByToken(token);
-    if (!invitation) throw new NotFoundException('Invitation not found');
-    if (invitation.AcceptedAt) throw new BadRequestException('Invitation already accepted');
-    if (invitation.ExpiresAt < new Date()) throw new BadRequestException('Invitation has expired');
+    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (invitation.AcceptedAt)
+      throw new BadRequestException("Invitation already accepted");
+    if (invitation.ExpiresAt < new Date())
+      throw new BadRequestException("Invitation has expired");
 
     const userEmail = user.Email.toLowerCase();
     if (userEmail !== invitation.Email.toLowerCase()) {
-      throw new ForbiddenException('This invitation was sent to a different email');
+      throw new ForbiddenException(
+        "This invitation was sent to a different email",
+      );
     }
 
     const existingMember = await this.orgMemberRepository.findByUserAndOrg(
       user.Id,
       invitation.OrganizationId,
     );
-    if (existingMember) throw new BadRequestException('You are already a member');
+    if (existingMember)
+      throw new BadRequestException("You are already a member");
 
     const member = this.orgMemberRepository.create({
       OrganizationId: invitation.OrganizationId,
@@ -156,42 +181,125 @@ export class InvitationsService {
 
   async decline(token: string, user: UserEntity): Promise<void> {
     const invitation = await this.invitationRepository.findByToken(token);
-    if (!invitation) throw new NotFoundException('Invitation not found');
-    if (invitation.AcceptedAt) throw new BadRequestException('Invitation already accepted');
+    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (invitation.AcceptedAt)
+      throw new BadRequestException("Invitation already accepted");
 
     const userEmail = user.Email.toLowerCase();
     if (userEmail !== invitation.Email.toLowerCase()) {
-      throw new ForbiddenException('This invitation was sent to a different email');
+      throw new ForbiddenException(
+        "This invitation was sent to a different email",
+      );
     }
 
     await this.invitationRepository.remove(invitation);
   }
 
-  async cancel(invitationId: string, orgId: string, user: UserEntity): Promise<void> {
-    const hasPermission = await this.orgMemberRepository.hasRole(user.Id, orgId, [
-      OrgRole.OWNER,
-      OrgRole.ADMIN,
-    ]);
-    if (!hasPermission) throw new ForbiddenException('You cannot cancel invitations');
+  /**
+   * Accept invitation by token only (no auth). Used when user just verified
+   * email and has not signed in yet. Resolves user by invitation email (must be verified).
+   */
+  async acceptByToken(token: string): Promise<void> {
+    const invitation = await this.invitationRepository.findByToken(token);
+    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (invitation.AcceptedAt)
+      throw new BadRequestException("Invitation already accepted");
+    if (invitation.ExpiresAt < new Date())
+      throw new BadRequestException("Invitation has expired");
 
-    const invitations = await this.invitationRepository.findPendingByOrg(orgId);
-    const invitation = invitations.find((i) => i.Id === invitationId);
-    if (!invitation) throw new NotFoundException('Invitation not found');
+    const email = invitation.Email.toLowerCase();
+    const user = await this.userRepository
+      .getORMMethods()
+      .createQueryBuilder("u")
+      .where("LOWER(u.Email) = :email", { email })
+      .getOne();
+    if (!user || !user.EmailVerified) {
+      throw new ForbiddenException(
+        "No verified account found for this invitation. Sign in or complete email verification first.",
+      );
+    }
+
+    const existingMember = await this.orgMemberRepository.findByUserAndOrg(
+      user.Id,
+      invitation.OrganizationId,
+    );
+    if (existingMember)
+      throw new BadRequestException("You are already a member");
+
+    const member = this.orgMemberRepository.create({
+      OrganizationId: invitation.OrganizationId,
+      UserId: user.Id,
+      Role: invitation.Role as OrgRole,
+    });
+    await this.orgMemberRepository.save(member);
+
+    invitation.AcceptedAt = new Date();
+    await this.invitationRepository.save(invitation);
+  }
+
+  /**
+   * Decline invitation by token only (no auth). Used when user just verified
+   * email and has not signed in yet. Resolves user by invitation email (must be verified).
+   */
+  async declineByToken(token: string): Promise<void> {
+    const invitation = await this.invitationRepository.findByToken(token);
+    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (invitation.AcceptedAt)
+      throw new BadRequestException("Invitation already accepted");
+
+    const email = invitation.Email.toLowerCase();
+    const user = await this.userRepository
+      .getORMMethods()
+      .createQueryBuilder("u")
+      .where("LOWER(u.Email) = :email", { email })
+      .getOne();
+    if (!user || !user.EmailVerified) {
+      throw new ForbiddenException(
+        "No verified account found for this invitation. Sign in or complete email verification first.",
+      );
+    }
 
     await this.invitationRepository.remove(invitation);
   }
 
-  async resend(invitationId: string, orgId: string, user: UserEntity): Promise<InvitationEntity> {
-    const hasPermission = await this.orgMemberRepository.hasRole(user.Id, orgId, [
-      OrgRole.OWNER,
-      OrgRole.ADMIN,
-    ]);
-    if (!hasPermission) throw new ForbiddenException('You cannot resend invitations');
+  async cancel(
+    invitationId: string,
+    orgId: string,
+    user: UserEntity,
+  ): Promise<void> {
+    const hasPermission = await this.orgMemberRepository.hasRole(
+      user.Id,
+      orgId,
+      [OrgRole.ORG_ADMIN],
+    );
+    if (!hasPermission)
+      throw new ForbiddenException("You cannot cancel invitations");
 
     const invitations = await this.invitationRepository.findPendingByOrg(orgId);
     const invitation = invitations.find((i) => i.Id === invitationId);
-    if (!invitation) throw new NotFoundException('Invitation not found');
-    if (invitation.AcceptedAt) throw new BadRequestException('Invitation already accepted');
+    if (!invitation) throw new NotFoundException("Invitation not found");
+
+    await this.invitationRepository.remove(invitation);
+  }
+
+  async resend(
+    invitationId: string,
+    orgId: string,
+    user: UserEntity,
+  ): Promise<InvitationEntity> {
+    const hasPermission = await this.orgMemberRepository.hasRole(
+      user.Id,
+      orgId,
+      [OrgRole.ORG_ADMIN],
+    );
+    if (!hasPermission)
+      throw new ForbiddenException("You cannot resend invitations");
+
+    const invitations = await this.invitationRepository.findPendingByOrg(orgId);
+    const invitation = invitations.find((i) => i.Id === invitationId);
+    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (invitation.AcceptedAt)
+      throw new BadRequestException("Invitation already accepted");
 
     invitation.Token = this.generateToken();
     invitation.ExpiresAt = new Date();

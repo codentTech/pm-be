@@ -1,21 +1,29 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { CardAssigneeRepository } from 'src/common/repositories/card-assignee.repository';
-import { CardLabelRepository } from 'src/common/repositories/card-label.repository';
-import { CardRepository } from 'src/common/repositories/card.repository';
-import { ListRepository } from 'src/common/repositories/list.repository';
-import { LabelRepository } from 'src/common/repositories/label.repository';
-import { OrganizationMemberRepository } from 'src/common/repositories/organization-member.repository';
-import { ProjectRepository } from 'src/common/repositories/project.repository';
-import { UserEntity } from 'src/core/database/entities/user.entity';
-import { CardEntity } from 'src/core/database/entities/card.entity';
-import { ListEntity } from 'src/core/database/entities/list.entity';
-import { ProjectGateway } from 'src/websocket/project.gateway';
-import { TicketStatusHistoryEntry } from 'src/common/types/ticket-status-history.interface';
-import { TicketStatus } from 'src/common/types/ticket-status.enum';
-import { TICKET_STATUS_BY_LIST_TITLE, TICKET_VALID_TRANSITIONS } from 'src/common/constants/ticket.constant';
-import { ProjectStatus } from 'src/common/types/project-status.enum';
-import { createPaginatedResponse } from 'src/common/dto/paginated-response.dto';
-import { CreateCardDto, UpdateCardDto } from './dto/card.dto';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { CardAssigneeRepository } from "src/common/repositories/card-assignee.repository";
+import { CardLabelRepository } from "src/common/repositories/card-label.repository";
+import { CardRepository } from "src/common/repositories/card.repository";
+import { ListRepository } from "src/common/repositories/list.repository";
+import { LabelRepository } from "src/common/repositories/label.repository";
+import { OrganizationMemberRepository } from "src/common/repositories/organization-member.repository";
+import { ProjectRepository } from "src/common/repositories/project.repository";
+import { UserEntity } from "src/core/database/entities/user.entity";
+import { CardEntity } from "src/core/database/entities/card.entity";
+import { ListEntity } from "src/core/database/entities/list.entity";
+import { ProjectGateway } from "src/websocket/project.gateway";
+import { TicketStatusHistoryEntry } from "src/common/types/ticket-status-history.interface";
+import { TicketStatus } from "src/common/types/ticket-status.enum";
+import {
+  TICKET_STATUS_BY_LIST_TITLE,
+  TICKET_VALID_TRANSITIONS,
+} from "src/common/constants/ticket.constant";
+import { ProjectStatus } from "src/common/types/project-status.enum";
+import { createPaginatedResponse } from "src/common/dto/paginated-response.dto";
+import { CreateCardDto, UpdateCardDto } from "./dto/card.dto";
 
 @Injectable()
 export class CardsService {
@@ -68,29 +76,36 @@ export class CardsService {
 
   async findOne(id: string, user: UserEntity): Promise<CardEntity> {
     const card = await this.cardRepository.findOneById(id, [
-      'List',
-      'List.Project',
-      'List.Project.CreatedBy',
-      'CardLabels',
-      'CardLabels.Label',
-      'CardAssignees',
-      'CardAssignees.User',
+      "List",
+      "List.Project",
+      "List.Project.CreatedBy",
+      "CardLabels",
+      "CardLabels.Label",
+      "CardAssignees",
+      "CardAssignees.User",
     ]);
-    if (!card) throw new NotFoundException('Card not found');
+    if (!card) throw new NotFoundException("Card not found");
     const project = card.List?.Project;
     if (project?.OrganizationId) {
-      const isMember = await this.orgMemberRepository.isMember(user.Id, project.OrganizationId);
-      if (!isMember) throw new ForbiddenException('Access denied');
+      const isMember = await this.orgMemberRepository.isMember(
+        user.Id,
+        project.OrganizationId,
+      );
+      if (!isMember) throw new ForbiddenException("Access denied");
     } else if (project?.CreatedBy?.Id !== user.Id) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     return card;
   }
 
-  async update(id: string, dto: UpdateCardDto, user: UserEntity): Promise<CardEntity> {
+  async update(
+    id: string,
+    dto: UpdateCardDto,
+    user: UserEntity,
+  ): Promise<CardEntity> {
     const card = await this.findOne(id, user);
     const prevListId = card.ListId;
-    const list = await this.listRepository.findOneById(prevListId, ['Project']);
+    const list = await this.listRepository.findOneById(prevListId, ["Project"]);
     const projectId = list?.ProjectId;
     this.assertProjectWritable(list?.Project);
 
@@ -109,9 +124,11 @@ export class CardsService {
       this.validateTransition(card.Status as TicketStatus, nextStatus);
       this.validateStatusRules(nextStatus, {
         ...dto,
-        AcceptanceCriteria: dto.AcceptanceCriteria ?? card.AcceptanceCriteria ?? undefined,
+        AcceptanceCriteria:
+          dto.AcceptanceCriteria ?? card.AcceptanceCriteria ?? undefined,
         BlockedReason: dto.BlockedReason ?? card.BlockedReason ?? undefined,
-        ValidationNotes: dto.ValidationNotes ?? card.ValidationNotes ?? undefined,
+        ValidationNotes:
+          dto.ValidationNotes ?? card.ValidationNotes ?? undefined,
       });
       this.appendStatusHistory(card, nextStatus, user.Id, dto.StatusReason);
       if (nextStatus === TicketStatus.REOPENED) {
@@ -132,9 +149,11 @@ export class CardsService {
     if (dto.SprintId !== undefined) card.SprintId = dto.SprintId;
     if (dto.ParentEpicId !== undefined) card.ParentEpicId = dto.ParentEpicId;
     if (dto.BlockedReason !== undefined) card.BlockedReason = dto.BlockedReason;
-    if (dto.AcceptanceCriteria !== undefined) card.AcceptanceCriteria = dto.AcceptanceCriteria;
+    if (dto.AcceptanceCriteria !== undefined)
+      card.AcceptanceCriteria = dto.AcceptanceCriteria;
     if (dto.Severity !== undefined) card.Severity = dto.Severity;
-    if (dto.ValidationNotes !== undefined) card.ValidationNotes = dto.ValidationNotes;
+    if (dto.ValidationNotes !== undefined)
+      card.ValidationNotes = dto.ValidationNotes;
 
     // Detach relations before save - TypeORM uses relation values over column values.
     // List: must detach so our ListId update is persisted (else List relation overwrites it).
@@ -146,7 +165,10 @@ export class CardsService {
     const saved = await this.cardRepository.save(card);
 
     if (dto.LabelIds !== undefined) {
-      const listWithProject = await this.listRepository.findOneById(saved.ListId, ['Project']);
+      const listWithProject = await this.listRepository.findOneById(
+        saved.ListId,
+        ["Project"],
+      );
       const orgId = listWithProject?.Project?.OrganizationId;
       if (orgId) {
         const orgLabels = await this.labelRepository.findByOrgId(orgId);
@@ -157,22 +179,32 @@ export class CardsService {
       }
     }
     if (dto.AssigneeIds !== undefined && saved?.Id) {
-      const listWithProject = await this.listRepository.findOneById(saved.ListId, ['Project']);
+      const listWithProject = await this.listRepository.findOneById(
+        saved.ListId,
+        ["Project"],
+      );
       const orgId = listWithProject?.Project?.OrganizationId;
       if (orgId) {
         const memberChecks = await Promise.all(
-          dto.AssigneeIds.map((uid) => this.orgMemberRepository.isMember(uid, orgId)),
+          dto.AssigneeIds.map((uid) =>
+            this.orgMemberRepository.isMember(uid, orgId),
+          ),
         );
-        const validAssigneeIds = dto.AssigneeIds.filter((_, i) => memberChecks[i]);
-        await this.cardAssigneeRepository.setAssigneesForCard(saved.Id, validAssigneeIds);
+        const validAssigneeIds = dto.AssigneeIds.filter(
+          (_, i) => memberChecks[i],
+        );
+        await this.cardAssigneeRepository.setAssigneesForCard(
+          saved.Id,
+          validAssigneeIds,
+        );
       }
     }
 
     const savedWithRelations = await this.cardRepository.findOneById(saved.Id, [
-      'CardLabels',
-      'CardLabels.Label',
-      'CardAssignees',
-      'CardAssignees.User',
+      "CardLabels",
+      "CardLabels.Label",
+      "CardAssignees",
+      "CardAssignees.User",
     ]);
 
     if (projectId) {
@@ -194,7 +226,9 @@ export class CardsService {
 
   async remove(id: string, user: UserEntity): Promise<void> {
     const card = await this.findOne(id, user);
-    const list = await this.listRepository.findOneById(card.ListId, ['Project']);
+    const list = await this.listRepository.findOneById(card.ListId, [
+      "Project",
+    ]);
     const projectId = list?.ProjectId;
     await this.cardRepository.remove(card);
     if (projectId) {
@@ -214,7 +248,12 @@ export class CardsService {
     await this.assertProjectAccess(projectId, user);
     const listIds = await this.listRepository.findIdsByProjectId(projectId);
     if (!listIds.length) {
-      return createPaginatedResponse([], 0, page, Math.min(100, Math.max(1, limit)));
+      return createPaginatedResponse(
+        [],
+        0,
+        page,
+        Math.min(100, Math.max(1, limit)),
+      );
     }
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
@@ -236,7 +275,12 @@ export class CardsService {
     await this.assertProjectAccess(projectId, user);
     const listIds = await this.listRepository.findIdsByProjectId(projectId);
     if (!listIds.length) {
-      return createPaginatedResponse([], 0, page, Math.min(100, Math.max(1, limit)));
+      return createPaginatedResponse(
+        [],
+        0,
+        page,
+        Math.min(100, Math.max(1, limit)),
+      );
     }
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
@@ -258,7 +302,12 @@ export class CardsService {
     await this.assertProjectAccess(projectId, user);
     const listIds = await this.listRepository.findIdsByProjectId(projectId);
     if (!listIds.length) {
-      return createPaginatedResponse([], 0, page, Math.min(100, Math.max(1, limit)));
+      return createPaginatedResponse(
+        [],
+        0,
+        page,
+        Math.min(100, Math.max(1, limit)),
+      );
     }
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
@@ -279,7 +328,12 @@ export class CardsService {
     await this.assertProjectAccess(projectId, user);
     const listIds = await this.listRepository.findIdsByProjectId(projectId);
     if (!listIds.length) {
-      return createPaginatedResponse([], 0, page, Math.min(100, Math.max(1, limit)));
+      return createPaginatedResponse(
+        [],
+        0,
+        page,
+        Math.min(100, Math.max(1, limit)),
+      );
     }
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
@@ -302,20 +356,20 @@ export class CardsService {
     status: TicketStatus,
     dto: CreateCardDto | UpdateCardDto,
   ): void {
-    if (status === TicketStatus.READY && !dto.AcceptanceCriteria?.trim()) {
-      throw new BadRequestException('Acceptance criteria required to move ticket to Ready');
-    }
-    if (status === TicketStatus.BLOCKED && !dto.BlockedReason?.trim()) {
-      throw new BadRequestException('Blocked reason required to move ticket to Blocked');
-    }
-    if (status === TicketStatus.DONE && !dto.ValidationNotes?.trim()) {
-      throw new BadRequestException('Validation notes required to move ticket to Done');
-    }
-    const statusReason =
-      'StatusReason' in dto ? (dto as UpdateCardDto).StatusReason : undefined;
-    if (status === TicketStatus.REOPENED && !statusReason?.trim()) {
-      throw new BadRequestException('Reopen reason required when ticket is Reopened');
-    }
+    // if (status === TicketStatus.READY && !dto.AcceptanceCriteria?.trim()) {
+    //   throw new BadRequestException('Acceptance criteria required to move ticket to Ready');
+    // }
+    // if (status === TicketStatus.BLOCKED && !dto.BlockedReason?.trim()) {
+    //   throw new BadRequestException('Blocked reason required to move ticket to Blocked');
+    // }
+    // if (status === TicketStatus.DONE && !dto.ValidationNotes?.trim()) {
+    //   throw new BadRequestException('Validation notes required to move ticket to Done');
+    // }
+    // const statusReason =
+    //   'StatusReason' in dto ? (dto as UpdateCardDto).StatusReason : undefined;
+    // if (status === TicketStatus.REOPENED && !statusReason?.trim()) {
+    //   throw new BadRequestException('Reopen reason required when ticket is Reopened');
+    // }
   }
 
   private appendStatusHistory(
@@ -324,7 +378,9 @@ export class CardsService {
     userId: string,
     reason?: string,
   ): void {
-    const history: TicketStatusHistoryEntry[] = Array.isArray(card.StatusHistory)
+    const history: TicketStatusHistoryEntry[] = Array.isArray(
+      card.StatusHistory,
+    )
       ? [...card.StatusHistory]
       : [];
     history.push({
@@ -344,21 +400,28 @@ export class CardsService {
   private assertProjectWritable(project?: { Status?: ProjectStatus | null }) {
     const status = project?.Status;
     if (status === ProjectStatus.PAUSED) {
-      throw new BadRequestException('Project is paused; ticket changes are blocked');
+      throw new BadRequestException(
+        "Project is paused; ticket changes are blocked",
+      );
     }
     if (status === ProjectStatus.CLOSED) {
-      throw new BadRequestException('Project is closed and read-only');
+      throw new BadRequestException("Project is closed and read-only");
     }
   }
 
   private async assertProjectAccess(projectId: string, user: UserEntity) {
-    const project = await this.projectRepository.findOneById(projectId, ['CreatedBy']);
-    if (!project) throw new NotFoundException('Project not found');
+    const project = await this.projectRepository.findOneById(projectId, [
+      "CreatedBy",
+    ]);
+    if (!project) throw new NotFoundException("Project not found");
     if (project.OrganizationId) {
-      const isMember = await this.orgMemberRepository.isMember(user.Id, project.OrganizationId);
-      if (!isMember) throw new ForbiddenException('Access denied');
+      const isMember = await this.orgMemberRepository.isMember(
+        user.Id,
+        project.OrganizationId,
+      );
+      if (!isMember) throw new ForbiddenException("Access denied");
     } else if (project.CreatedBy?.Id !== user.Id) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     return project;
   }
@@ -368,16 +431,19 @@ export class CardsService {
     userId: string,
   ): Promise<ListEntity | null> {
     const list = await this.listRepository.findOneById(listId, [
-      'Project',
-      'Project.CreatedBy',
+      "Project",
+      "Project.CreatedBy",
     ]);
-    if (!list) throw new NotFoundException('List not found');
+    if (!list) throw new NotFoundException("List not found");
     const project = list.Project;
     if (project?.OrganizationId) {
-      const isMember = await this.orgMemberRepository.isMember(userId, project.OrganizationId);
-      if (!isMember) throw new ForbiddenException('Access denied');
+      const isMember = await this.orgMemberRepository.isMember(
+        userId,
+        project.OrganizationId,
+      );
+      if (!isMember) throw new ForbiddenException("Access denied");
     } else if (project?.CreatedBy?.Id !== userId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     return list;
   }

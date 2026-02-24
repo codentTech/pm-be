@@ -17,11 +17,13 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiResponse } from 'src/common/dto/api-response.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { OrgMemberGuard } from 'src/common/guards/org-member.guard';
+import { SuperAdminGuard } from 'src/common/guards/super-admin.guard';
 import { AuthenticatedRequest } from 'src/common/types/request.interface';
 import { UserEntity } from 'src/core/database/entities/user.entity';
 import { OrganizationsService } from './organizations.service';
 import {
   CreateOrganizationDto,
+  CreateOrganizationWithOwnerDto,
   UpdateOrganizationDto,
   UpdateMemberRoleDto,
 } from './dto/organization.dto';
@@ -41,11 +43,40 @@ export class OrganizationsController {
     return new ApiResponse(true, HttpStatus.CREATED, 'Organization created successfully', response);
   }
 
+  @Post('create-with-owner')
+  @UseGuards(SuperAdminGuard)
+  @ApiOperation({ summary: 'Super Admin: Create workspace with designated owner' })
+  async createWithOwner(
+    @Body() dto: CreateOrganizationWithOwnerDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const result = await this.organizationsService.createWithOwner(
+      dto,
+      req.user as UserEntity,
+    );
+    return new ApiResponse(
+      true,
+      HttpStatus.CREATED,
+      result.invitationSent
+        ? 'Organization created. Invitation sent to the given email to sign up and become org admin.'
+        : 'Workspace created with owner successfully',
+      result,
+    );
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all organizations for the current user' })
   async findAll(@Req() req: AuthenticatedRequest) {
     const response = await this.organizationsService.findAllForUser(req.user as UserEntity);
     return new ApiResponse(true, HttpStatus.OK, 'Organizations fetched successfully', response);
+  }
+
+  @Get('list-all')
+  @UseGuards(SuperAdminGuard)
+  @ApiOperation({ summary: 'Super Admin: List all organizations' })
+  async listAll() {
+    const response = await this.organizationsService.findAllForSuperAdmin();
+    return new ApiResponse(true, HttpStatus.OK, 'Organizations listed successfully', response);
   }
 
   @Get('default')

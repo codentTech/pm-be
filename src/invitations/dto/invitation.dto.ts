@@ -8,7 +8,7 @@ export class CreateInvitationDto {
   @IsNotEmpty({ message: 'Email is required' })
   Email: string;
 
-  @ApiProperty({ enum: OrgRole, default: OrgRole.MEMBER })
+  @ApiProperty({ enum: OrgRole, default: OrgRole.DEVELOPER })
   @IsEnum(OrgRole)
   @IsNotEmpty()
   Role: OrgRole;

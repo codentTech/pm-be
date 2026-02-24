@@ -37,7 +37,7 @@ export class InvitationRepository extends BaseRepository<InvitationEntity> {
   async findPendingByEmail(email: string): Promise<InvitationEntity[]> {
     return this.repo.find({
       where: { Email: email, AcceptedAt: IsNull() },
-      relations: ['Organization'],
+      relations: ['Organization', 'CreatedBy'],
       order: { CreatedAt: 'DESC' },
     });
   }

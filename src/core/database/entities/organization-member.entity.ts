@@ -24,6 +24,7 @@ export class OrganizationMemberEntity extends BaseEntity {
   @Column({ type: 'uuid', nullable: false })
   UserId: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: false, default: OrgRole.MEMBER })
+  /** Role within this workspace. ORG_ADMIN manages org (members, settings). PROJECT_MANAGER manages projects. Distinct from User.SystemRole. */
+  @Column({ type: 'varchar', length: 32, nullable: false, default: OrgRole.DEVELOPER })
   Role: OrgRole;
 }

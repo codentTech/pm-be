@@ -61,7 +61,7 @@ export class WikiService {
       const hasRole = await this.orgMemberRepository.hasRole(
         user.Id,
         project.OrganizationId,
-        [OrgRole.ADMIN, OrgRole.OWNER],
+        [OrgRole.PROJECT_MANAGER],
       );
       if (!hasRole) throw new ForbiddenException("Admin access required");
     } else if (project.CreatedBy?.Id !== user.Id) {

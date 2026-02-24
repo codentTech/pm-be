@@ -137,8 +137,7 @@ export class ProjectsService {
   async createFromBid(bidId: string, user: UserEntity, orgId?: string | null): Promise<ProjectEntity> {
     const resolvedOrgId = await this.resolveOrgId(user, orgId);
     const hasPermission = await this.orgMemberRepository.hasRole(user.Id, resolvedOrgId, [
-      OrgRole.OWNER,
-      OrgRole.ADMIN,
+      OrgRole.PROJECT_MANAGER,
     ]);
     if (!hasPermission) {
       throw new ForbiddenException('You do not have permission to create a project from a bid');

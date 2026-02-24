@@ -19,6 +19,10 @@ export class UserEntity extends BaseEntity {
   @Column({ type: 'boolean', default: true })
   EmailVerified: boolean;
 
+  /** System-wide role. Only SUPER_ADMIN is set; others are null. Distinct from OrganizationMember.Role (workspace role). */
+  @Column({ name: 'Role', type: 'varchar', length: 32, nullable: true })
+  SystemRole: ROLE | null;
+
   @Exclude()
   @Column({ type: 'varchar', length: 64, nullable: true })
   VerificationToken: string | null;

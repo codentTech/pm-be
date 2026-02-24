@@ -3,29 +3,32 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { DailyUpdateRepository } from 'src/common/repositories/daily-update.repository';
-import { DailyUpdateWorkItemRepository } from 'src/common/repositories/daily-update-work-item.repository';
-import { OrganizationMemberRepository } from 'src/common/repositories/organization-member.repository';
-import { OrganizationsService } from 'src/organizations/organizations.service';
-import { UserEntity } from 'src/core/database/entities/user.entity';
-import { createPaginatedResponse } from 'src/common/dto/paginated-response.dto';
-import { DailyUpdateEntity } from 'src/core/database/entities/daily-update.entity';
-import { DailyUpdateWorkItemEntity } from 'src/core/database/entities/daily-update-work-item.entity';
-import { DailyUpdateRole } from 'src/common/types/daily-update-role.enum';
-import { DailyUpdateStatus } from 'src/common/types/daily-update-status.enum';
-import { WorkItemStatus } from 'src/common/types/work-item-status.enum';
-import { OrgRole } from 'src/common/types/org-role.enum';
+} from "@nestjs/common";
+import { DailyUpdateRepository } from "src/common/repositories/daily-update.repository";
+import { DailyUpdateWorkItemRepository } from "src/common/repositories/daily-update-work-item.repository";
+import { OrganizationMemberRepository } from "src/common/repositories/organization-member.repository";
+import { OrganizationsService } from "src/organizations/organizations.service";
+import { UserEntity } from "src/core/database/entities/user.entity";
+import { createPaginatedResponse } from "src/common/dto/paginated-response.dto";
+import { DailyUpdateEntity } from "src/core/database/entities/daily-update.entity";
+import { DailyUpdateWorkItemEntity } from "src/core/database/entities/daily-update-work-item.entity";
+import { DailyUpdateRole } from "src/common/types/daily-update-role.enum";
+import { DailyUpdateStatus } from "src/common/types/daily-update-status.enum";
+import { WorkItemStatus } from "src/common/types/work-item-status.enum";
+import { OrgRole } from "src/common/types/org-role.enum";
 import {
   DAILY_TIME_CAP_HOURS,
   WORK_ITEM_TYPES_BY_ROLE,
   WORK_ITEM_TYPES_REQUIRE_REFERENCE,
   WORK_ITEM_TYPES_TICKET,
   WORK_ITEM_TYPES_BID,
-} from 'src/common/constants/daily-update.constant';
-import { CreateDailyUpdateDto, UpdateDailyUpdateDto } from './dto/daily-update.dto';
-import { CardRepository } from 'src/common/repositories/card.repository';
-import { BidRepository } from 'src/common/repositories/bid.repository';
+} from "src/common/constants/daily-update.constant";
+import {
+  CreateDailyUpdateDto,
+  UpdateDailyUpdateDto,
+} from "./dto/daily-update.dto";
+import { CardRepository } from "src/common/repositories/card.repository";
+import { BidRepository } from "src/common/repositories/bid.repository";
 
 @Injectable()
 export class DailyUpdatesService {
@@ -38,40 +41,69 @@ export class DailyUpdatesService {
     private readonly bidRepository: BidRepository,
   ) {}
 
-  private async resolveOrgId(user: UserEntity, orgId?: string | null): Promise<string> {
+  private async resolveOrgId(
+    user: UserEntity,
+    orgId?: string | null,
+  ): Promise<string> {
     if (orgId) {
       const isMember = await this.orgMemberRepository.isMember(user.Id, orgId);
-      if (!isMember) throw new ForbiddenException('You are not a member of this organization');
+      if (!isMember)
+        throw new ForbiddenException(
+          "You are not a member of this organization",
+        );
       return orgId;
     }
-    const defaultOrg = await this.organizationsService.getOrEnsureDefaultOrg(user);
+    const defaultOrg =
+      await this.organizationsService.getOrEnsureDefaultOrg(user);
     return defaultOrg.Id;
   }
 
-  private async isOwnerOnlyScope(user: UserEntity, orgId: string): Promise<boolean> {
-    const membership = await this.orgMemberRepository.findByUserAndOrg(user.Id, orgId);
+  private async isOwnerOnlyScope(
+    user: UserEntity,
+    orgId: string,
+  ): Promise<boolean> {
+    const membership = await this.orgMemberRepository.findByUserAndOrg(
+      user.Id,
+      orgId,
+    );
     if (!membership) return true;
-    return [OrgRole.MEMBER, OrgRole.GUEST].includes(membership.Role as OrgRole);
+    return (
+      membership.Role !== OrgRole.PROJECT_MANAGER &&
+      membership.Role !== OrgRole.ORG_ADMIN
+    );
   }
 
-  private validateWorkItems(role: DailyUpdateRole, items: DailyUpdateWorkItemEntity[]) {
+  private validateWorkItems(
+    role: DailyUpdateRole,
+    items: DailyUpdateWorkItemEntity[],
+  ) {
     if (!items.length) {
-      throw new BadRequestException('At least one work item is required');
+      throw new BadRequestException("At least one work item is required");
     }
 
     const allowedTypes = WORK_ITEM_TYPES_BY_ROLE[role] || [];
     items.forEach((item) => {
       if (!item.Type || !allowedTypes.includes(item.Type)) {
-        throw new BadRequestException('Invalid work item type for role');
+        throw new BadRequestException("Invalid work item type for role");
       }
       if (!item.Description?.trim()) {
-        throw new BadRequestException('Work item description is required');
+        throw new BadRequestException("Work item description is required");
       }
-      if (WORK_ITEM_TYPES_REQUIRE_REFERENCE.has(item.Type) && !item.ReferenceId) {
-        throw new BadRequestException('Reference ID required for this work item');
+      if (
+        WORK_ITEM_TYPES_REQUIRE_REFERENCE.has(item.Type) &&
+        !item.ReferenceId
+      ) {
+        throw new BadRequestException(
+          "Reference ID required for this work item",
+        );
       }
-      if (item.Status === WorkItemStatus.BLOCKED && !item.BlockerReason?.trim()) {
-        throw new BadRequestException('Blocker reason required for blocked item');
+      if (
+        item.Status === WorkItemStatus.BLOCKED &&
+        !item.BlockerReason?.trim()
+      ) {
+        throw new BadRequestException(
+          "Blocker reason required for blocked item",
+        );
       }
       if (item.TimeSpent != null && item.TimeSpent > DAILY_TIME_CAP_HOURS) {
         throw new BadRequestException(
@@ -85,7 +117,9 @@ export class DailyUpdatesService {
     status: DailyUpdateStatus,
     items: DailyUpdateWorkItemEntity[],
   ): DailyUpdateStatus {
-    const hasBlocked = items.some((item) => item.Status === WorkItemStatus.BLOCKED);
+    const hasBlocked = items.some(
+      (item) => item.Status === WorkItemStatus.BLOCKED,
+    );
     if (hasBlocked) return DailyUpdateStatus.BLOCKED;
     return status;
   }
@@ -98,24 +132,27 @@ export class DailyUpdatesService {
       if (!item.ReferenceId) continue;
       if (WORK_ITEM_TYPES_TICKET.has(item.Type)) {
         const card = await this.cardRepository.findOneById(item.ReferenceId, [
-          'List',
-          'List.Project',
+          "List",
+          "List.Project",
         ]);
         const projectOrgId = card?.List?.Project?.OrganizationId;
         if (!card || projectOrgId !== orgId) {
-          throw new BadRequestException('Invalid ticket reference');
+          throw new BadRequestException("Invalid ticket reference");
         }
       }
       if (WORK_ITEM_TYPES_BID.has(item.Type)) {
-        const bid = await this.bidRepository.findOneByIdAndOrg(item.ReferenceId, orgId);
-        if (!bid) throw new BadRequestException('Invalid bid reference');
+        const bid = await this.bidRepository.findOneByIdAndOrg(
+          item.ReferenceId,
+          orgId,
+        );
+        if (!bid) throw new BadRequestException("Invalid bid reference");
       }
     }
   }
 
   private assertCanEdit(update: DailyUpdateEntity, user: UserEntity): void {
     if (update.UserId !== user.Id) {
-      throw new ForbiddenException('You cannot edit another user update');
+      throw new ForbiddenException("You cannot edit another user update");
     }
   }
 
@@ -131,7 +168,9 @@ export class DailyUpdatesService {
       dto.Date,
     );
     if (existing) {
-      throw new BadRequestException('Daily update already exists for this date');
+      throw new BadRequestException(
+        "Daily update already exists for this date",
+      );
     }
 
     const workItems = (dto.WorkItems || []).map((item) =>
@@ -183,12 +222,13 @@ export class DailyUpdatesService {
 
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
-    const [items, total] = await this.dailyUpdateRepository.findAllByOrgPaginated(
-      resolvedOrgId,
-      skip,
-      take,
-      filters,
-    );
+    const [items, total] =
+      await this.dailyUpdateRepository.findAllByOrgPaginated(
+        resolvedOrgId,
+        skip,
+        take,
+        filters,
+      );
     return createPaginatedResponse(items, total, page, take);
   }
 
@@ -198,14 +238,15 @@ export class DailyUpdatesService {
     orgId?: string | null,
   ): Promise<DailyUpdateEntity> {
     const resolvedOrgId = await this.resolveOrgId(user, orgId);
-    const update = await this.dailyUpdateRepository.findOneByIdAndOrg(id, resolvedOrgId, [
-      'User',
-      'WorkItems',
-    ]);
-    if (!update) throw new NotFoundException('Daily update not found');
+    const update = await this.dailyUpdateRepository.findOneByIdAndOrg(
+      id,
+      resolvedOrgId,
+      ["User", "WorkItems"],
+    );
+    if (!update) throw new NotFoundException("Daily update not found");
     const ownerOnly = await this.isOwnerOnlyScope(user, resolvedOrgId);
     if (ownerOnly && update.UserId !== user.Id) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     return update;
   }
@@ -217,10 +258,12 @@ export class DailyUpdatesService {
     orgId?: string | null,
   ): Promise<DailyUpdateEntity> {
     const resolvedOrgId = await this.resolveOrgId(user, orgId);
-    const update = await this.dailyUpdateRepository.findOneByIdAndOrg(id, resolvedOrgId, [
-      'WorkItems',
-    ]);
-    if (!update) throw new NotFoundException('Daily update not found');
+    const update = await this.dailyUpdateRepository.findOneByIdAndOrg(
+      id,
+      resolvedOrgId,
+      ["WorkItems"],
+    );
+    if (!update) throw new NotFoundException("Daily update not found");
     this.assertCanEdit(update, user);
 
     if (dto.Date) update.Date = new Date(dto.Date);
@@ -230,7 +273,8 @@ export class DailyUpdatesService {
       update.TotalTimeSpent = dto.TotalTimeSpent ?? null;
     }
     if (dto.Notes !== undefined) update.Notes = dto.Notes ?? null;
-    if (dto.NextDayPlan !== undefined) update.NextDayPlan = dto.NextDayPlan ?? null;
+    if (dto.NextDayPlan !== undefined)
+      update.NextDayPlan = dto.NextDayPlan ?? null;
 
     if (dto.WorkItems) {
       const workItems = dto.WorkItems.map((item) =>
@@ -245,7 +289,10 @@ export class DailyUpdatesService {
       );
       this.validateWorkItems(update.Role, workItems);
       await this.validateReferences(resolvedOrgId, workItems);
-      update.OverallStatus = this.computeOverallStatus(update.OverallStatus, workItems);
+      update.OverallStatus = this.computeOverallStatus(
+        update.OverallStatus,
+        workItems,
+      );
       await this.dailyUpdateWorkItemRepository.removeByDailyUpdateId(update.Id);
       update.WorkItems = workItems;
     }
@@ -263,10 +310,11 @@ export class DailyUpdatesService {
     const resolvedOrgId = await this.resolveOrgId(user, orgId);
     const ownerOnly = await this.isOwnerOnlyScope(user, resolvedOrgId);
     if (ownerOnly) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
-    const members = await this.orgMemberRepository.findMembersByOrgId(resolvedOrgId);
+    const members =
+      await this.orgMemberRepository.findMembersByOrgId(resolvedOrgId);
     const memberIds = members.map((m) => m.UserId);
     const [updates] = await this.dailyUpdateRepository.findAllByOrgPaginated(
       resolvedOrgId,
@@ -280,7 +328,7 @@ export class DailyUpdatesService {
       .map((id) => ({
         UserId: id,
         MissedDate: date,
-        Details: 'No update submitted',
+        Details: "No update submitted",
       }));
 
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
@@ -300,7 +348,7 @@ export class DailyUpdatesService {
     const resolvedOrgId = await this.resolveOrgId(user, orgId);
     const ownerOnly = await this.isOwnerOnlyScope(user, resolvedOrgId);
     if (ownerOnly) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
@@ -336,7 +384,7 @@ export class DailyUpdatesService {
     const resolvedOrgId = await this.resolveOrgId(user, orgId);
     const ownerOnly = await this.isOwnerOnlyScope(user, resolvedOrgId);
     if (ownerOnly) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     const skip = (Math.max(1, page) - 1) * Math.min(100, Math.max(1, limit));
     const take = Math.min(100, Math.max(1, limit));
