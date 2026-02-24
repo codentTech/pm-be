@@ -196,7 +196,9 @@ export class OrganizationsService {
       const orgAdmin = members.find(
         (m) => (m.Role || "").toLowerCase() === OrgRole.ORG_ADMIN,
       );
-      const user = orgAdmin?.User as { Email?: string; FullName?: string } | undefined;
+      const user = orgAdmin?.User as
+        | { Email?: string; FullName?: string }
+        | undefined;
       return {
         Id: org.Id,
         Name: org.Name,
@@ -272,11 +274,15 @@ export class OrganizationsService {
     if (!org) throw new NotFoundException("Organization not found");
 
     if (user.SystemRole !== ROLE.SUPER_ADMIN) {
-      const hasPermission = await this.orgMemberRepository.hasRole(user.Id, id, [
-        OrgRole.ORG_ADMIN,
-      ]);
+      const hasPermission = await this.orgMemberRepository.hasRole(
+        user.Id,
+        id,
+        [OrgRole.ORG_ADMIN],
+      );
       if (!hasPermission)
-        throw new ForbiddenException("Only the org admin can update this organization");
+        throw new ForbiddenException(
+          "Only the org admin can update this organization",
+        );
     }
 
     if (dto.Name) org.Name = dto.Name;
@@ -303,7 +309,10 @@ export class OrganizationsService {
     if (!org) throw new NotFoundException("Organization not found");
 
     if (user.SystemRole !== ROLE.SUPER_ADMIN) {
-      const member = await this.orgMemberRepository.findByUserAndOrg(user.Id, id);
+      const member = await this.orgMemberRepository.findByUserAndOrg(
+        user.Id,
+        id,
+      );
       if (!member || member.Role !== OrgRole.ORG_ADMIN) {
         throw new ForbiddenException(
           "Only the org admin can delete this organization",
@@ -315,9 +324,13 @@ export class OrganizationsService {
   }
 
   async getMembers(orgId: string, user: UserEntity): Promise<any[]> {
-    const isMember = await this.orgMemberRepository.isMember(user.Id, orgId);
-    if (!isMember)
-      throw new ForbiddenException("You are not a member of this organization");
+    if (user.SystemRole !== ROLE.SUPER_ADMIN) {
+      const isMember = await this.orgMemberRepository.isMember(user.Id, orgId);
+      if (!isMember)
+        throw new ForbiddenException(
+          "You are not a member of this organization",
+        );
+    }
 
     const members = await this.orgMemberRepository.findMembersByOrgId(orgId);
     return members.map((m) => ({
