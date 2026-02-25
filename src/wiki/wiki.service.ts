@@ -61,7 +61,7 @@ export class WikiService {
       const hasRole = await this.orgMemberRepository.hasRole(
         user.Id,
         project.OrganizationId,
-        [OrgRole.PROJECT_MANAGER],
+        [OrgRole.ORG_ADMIN],
       );
       if (!hasRole) throw new ForbiddenException("Admin access required");
     } else if (project.CreatedBy?.Id !== user.Id) {
@@ -124,6 +124,15 @@ export class WikiService {
     return this.wikiPageRepository.findByProjectId(projectId);
   }
 
+  async searchPages(
+    projectId: string,
+    query: string,
+    user: UserEntity,
+  ): Promise<WikiPageEntity[]> {
+    await this.assertProjectAccess(projectId, user);
+    return this.wikiPageRepository.search(projectId, query);
+  }
+
   async getBySlug(
     projectId: string,
     slug: string,
@@ -149,7 +158,7 @@ export class WikiService {
       Title: dto.Title.trim(),
       Slug: slug,
       Content: dto.Content?.trim() || null,
-      CreatedBy: user,
+      CreatedById: user.Id,
     });
 
     return this.wikiPageRepository.save(page);

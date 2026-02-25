@@ -54,6 +54,21 @@ export class WikiController {
     return new ApiResponse(true, HttpStatus.OK, "Wiki pages fetched", response);
   }
 
+  @Get("search")
+  @ApiOperation({ summary: "Search wiki pages by title or content" })
+  async searchPages(
+    @Param("projectId") projectId: string,
+    @Query("q") q: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const response = await this.wikiService.searchPages(
+      projectId,
+      q || "",
+      req.user,
+    );
+    return new ApiResponse(true, HttpStatus.OK, "Search results", response);
+  }
+
   @Post()
   @ApiOperation({ summary: "Create wiki page" })
   async createPage(
